@@ -8,12 +8,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import {
-  initialClients,
-  initialAppointments,
-  initialInvoices,
-  initialProducts,
-} from "./data";
+import { supabase } from "./supabase";
 import type {
   Client,
   Appointment,
@@ -26,29 +21,74 @@ import type {
 } from "./types";
 
 // ── Helpers ──────────────────────────────────────────────
-let _id = 100;
-const nextId = (prefix: string) => `${prefix}${++_id}`;
-
 const today = () => new Date().toISOString().split("T")[0];
+
+const avatarColors = ["#7C3AED", "#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6", "#06B6D4", "#EF4444", "#14B8A6", "#F97316"];
+
+// ── DB row → app model mappers ───────────────────────────
+function rowToClient(r: Record<string, unknown>): Client {
+  return {
+    id: r.id as string,
+    firstName: r.first_name as string,
+    lastName: r.last_name as string,
+    phone: r.phone as string,
+    email: r.email as string,
+    notes: r.notes as string,
+    avatar: r.avatar as string,
+    createdAt: (r.created_at as string).split("T")[0],
+  };
+}
+
+function rowToAppointment(r: Record<string, unknown>): Appointment {
+  return {
+    id: r.id as string,
+    clientId: (r.client_id as string) || "",
+    title: r.title as string,
+    date: (r.date as string).split("T")[0],
+    time: (r.time as string).substring(0, 5),
+    duration: r.duration as number,
+    status: r.status as AppointmentStatus,
+    price: Number(r.price),
+    notes: r.notes as string,
+  };
+}
+
+function rowToInvoice(r: Record<string, unknown>): Invoice {
+  return {
+    id: r.id as string,
+    clientId: (r.client_id as string) || "",
+    appointmentId: (r.appointment_id as string) || undefined,
+    amount: Number(r.amount),
+    status: r.status as PaymentStatus,
+    date: (r.date as string).split("T")[0],
+    description: r.description as string,
+    items: (r.items as InvoiceItem[]) || undefined,
+  };
+}
+
+function rowToProduct(r: Record<string, unknown>): Product {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    quantity: r.quantity as number,
+    minQuantity: r.min_quantity as number,
+    price: Number(r.price),
+    category: r.category as string,
+    emoji: r.emoji as string,
+  };
+}
 
 // ── Context shape ────────────────────────────────────────
 interface AppState {
-  // Onboarding
   hasOnboarded: boolean;
   completeOnboarding: () => void;
-
-  // User
   user: UserProfile;
   updateUser: (u: Partial<UserProfile>) => void;
-
-  // Clients
   clients: Client[];
   addClient: (c: Omit<Client, "id" | "createdAt" | "avatar">) => void;
   updateClient: (id: string, c: Partial<Client>) => void;
   deleteClient: (id: string) => void;
   getClient: (id: string) => Client | undefined;
-
-  // Appointments
   appointments: Appointment[];
   addAppointment: (a: Omit<Appointment, "id">) => void;
   updateAppointment: (id: string, a: Partial<Appointment>) => void;
@@ -56,8 +96,6 @@ interface AppState {
   setAppointmentStatus: (id: string, s: AppointmentStatus) => void;
   getTodayAppointments: () => Appointment[];
   getClientAppointments: (clientId: string) => Appointment[];
-
-  // Invoices
   invoices: Invoice[];
   addInvoice: (i: Omit<Invoice, "id">) => void;
   setInvoiceStatus: (id: string, s: PaymentStatus) => void;
@@ -66,8 +104,6 @@ interface AppState {
   getWeekRevenue: () => number;
   getMonthRevenue: () => number;
   getPendingAmount: () => number;
-
-  // Stock
   products: Product[];
   addProduct: (p: Omit<Product, "id">) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
@@ -79,139 +115,256 @@ const AppContext = createContext<AppState | null>(null);
 
 // ── Provider ─────────────────────────────────────────────
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [userId, setUserId] = useState<string | null>(null);
   const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [user, setUser] = useState<UserProfile>({
-    name: "",
-    business: "",
-    phone: "",
-    email: "",
-  });
-  const [clients, setClients] = useState<Client[]>(initialClients);
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [user, setUser] = useState<UserProfile>({ name: "", business: "", phone: "", email: "" });
+  const [clients, setClients] = useState<Client[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Hydrate from localStorage
+  // ── Hydrate from Supabase ──────────────────────────────
   useEffect(() => {
-    const raw = localStorage.getItem("proapp_state");
-    if (raw) {
-      try {
-        const s = JSON.parse(raw);
-        if (s.hasOnboarded !== undefined) setHasOnboarded(s.hasOnboarded);
-        if (s.user) setUser(s.user);
-        if (s.clients) setClients(s.clients);
-        if (s.appointments) setAppointments(s.appointments);
-        if (s.invoices) setInvoices(s.invoices);
-        if (s.products) setProducts(s.products);
-      } catch {
-        // ignore
+    async function hydrate() {
+      // Get or create user profile
+      const { data: profiles } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .limit(1);
+
+      let uid: string;
+      if (profiles && profiles.length > 0) {
+        const p = profiles[0];
+        uid = p.id;
+        setHasOnboarded(p.has_onboarded);
+        setUser({ name: p.name, business: p.business, phone: p.phone, email: p.email });
+      } else {
+        const { data: newProfile } = await supabase
+          .from("user_profiles")
+          .insert({ name: "", business: "", phone: "", email: "", has_onboarded: false })
+          .select()
+          .single();
+        uid = newProfile!.id;
       }
+      setUserId(uid);
+
+      // Load all data in parallel
+      const [cRes, aRes, iRes, pRes] = await Promise.all([
+        supabase.from("clients").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
+        supabase.from("appointments").select("*").eq("user_id", uid),
+        supabase.from("invoices").select("*").eq("user_id", uid).order("date", { ascending: false }),
+        supabase.from("products").select("*").eq("user_id", uid),
+      ]);
+
+      if (cRes.data) setClients(cRes.data.map(rowToClient));
+      if (aRes.data) setAppointments(aRes.data.map(rowToAppointment));
+      if (iRes.data) setInvoices(iRes.data.map(rowToInvoice));
+      if (pRes.data) setProducts(pRes.data.map(rowToProduct));
+
+      setIsHydrated(true);
     }
-    setIsHydrated(true);
+    hydrate();
   }, []);
 
-  // Persist
+  // ── Realtime subscriptions ─────────────────────────────
   useEffect(() => {
-    if (!isHydrated) return;
-    localStorage.setItem(
-      "proapp_state",
-      JSON.stringify({ hasOnboarded, user, clients, appointments, invoices, products })
-    );
-  }, [hasOnboarded, user, clients, appointments, invoices, products, isHydrated]);
+    if (!userId) return;
 
-  // ── Onboarding ──
-  const completeOnboarding = useCallback(() => setHasOnboarded(true), []);
+    const channel = supabase
+      .channel("db-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "clients", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") setClients((prev) => [rowToClient(payload.new), ...prev]);
+          if (payload.eventType === "UPDATE") setClients((prev) => prev.map((c) => c.id === payload.new.id ? rowToClient(payload.new) : c));
+          if (payload.eventType === "DELETE") setClients((prev) => prev.filter((c) => c.id !== payload.old.id));
+        }
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") setAppointments((prev) => [...prev, rowToAppointment(payload.new)]);
+          if (payload.eventType === "UPDATE") setAppointments((prev) => prev.map((a) => a.id === payload.new.id ? rowToAppointment(payload.new) : a));
+          if (payload.eventType === "DELETE") setAppointments((prev) => prev.filter((a) => a.id !== payload.old.id));
+        }
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "invoices", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") setInvoices((prev) => [rowToInvoice(payload.new), ...prev]);
+          if (payload.eventType === "UPDATE") setInvoices((prev) => prev.map((i) => i.id === payload.new.id ? rowToInvoice(payload.new) : i));
+          if (payload.eventType === "DELETE") setInvoices((prev) => prev.filter((i) => i.id !== payload.old.id));
+        }
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "products", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") setProducts((prev) => [...prev, rowToProduct(payload.new)]);
+          if (payload.eventType === "UPDATE") setProducts((prev) => prev.map((p) => p.id === payload.new.id ? rowToProduct(payload.new) : p));
+          if (payload.eventType === "DELETE") setProducts((prev) => prev.filter((p) => p.id !== payload.old.id));
+        }
+      )
+      .subscribe();
 
-  // ── User ──
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
+  // ── Onboarding ─────────────────────────────────────────
+  const completeOnboarding = useCallback(() => {
+    setHasOnboarded(true);
+    if (userId) supabase.from("user_profiles").update({ has_onboarded: true }).eq("id", userId).then();
+  }, [userId]);
+
+  // ── User ───────────────────────────────────────────────
   const updateUser = useCallback(
-    (u: Partial<UserProfile>) => setUser((prev) => ({ ...prev, ...u })),
-    []
+    (u: Partial<UserProfile>) => {
+      setUser((prev) => ({ ...prev, ...u }));
+      if (userId) supabase.from("user_profiles").update(u).eq("id", userId).then();
+    },
+    [userId]
   );
 
-  // ── Clients ──
+  // ── Clients ────────────────────────────────────────────
   const addClient = useCallback(
-    (c: Omit<Client, "id" | "createdAt" | "avatar">) => {
-      const id = nextId("c");
-      const colors = ["#7C3AED", "#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6"];
-      setClients((prev) => [
-        ...prev,
-        { ...c, id, createdAt: today(), avatar: colors[prev.length % colors.length] },
-      ]);
+    async (c: Omit<Client, "id" | "createdAt" | "avatar">) => {
+      if (!userId) return;
+      const avatar = avatarColors[clients.length % avatarColors.length];
+      const { data } = await supabase
+        .from("clients")
+        .insert({ user_id: userId, first_name: c.firstName, last_name: c.lastName, phone: c.phone, email: c.email, notes: c.notes, avatar })
+        .select()
+        .single();
+      if (data) setClients((prev) => [rowToClient(data), ...prev]);
+    },
+    [userId, clients.length]
+  );
+
+  const updateClient = useCallback(
+    (id: string, c: Partial<Client>) => {
+      setClients((prev) => prev.map((x) => (x.id === id ? { ...x, ...c } : x)));
+      const dbFields: Record<string, unknown> = {};
+      if (c.firstName !== undefined) dbFields.first_name = c.firstName;
+      if (c.lastName !== undefined) dbFields.last_name = c.lastName;
+      if (c.phone !== undefined) dbFields.phone = c.phone;
+      if (c.email !== undefined) dbFields.email = c.email;
+      if (c.notes !== undefined) dbFields.notes = c.notes;
+      if (c.avatar !== undefined) dbFields.avatar = c.avatar;
+      supabase.from("clients").update(dbFields).eq("id", id).then();
     },
     []
   );
-  const updateClient = useCallback(
-    (id: string, c: Partial<Client>) =>
-      setClients((prev) => prev.map((x) => (x.id === id ? { ...x, ...c } : x))),
-    []
-  );
+
   const deleteClient = useCallback(
-    (id: string) => setClients((prev) => prev.filter((x) => x.id !== id)),
+    (id: string) => {
+      setClients((prev) => prev.filter((x) => x.id !== id));
+      supabase.from("clients").delete().eq("id", id).then();
+    },
     []
   );
+
   const getClient = useCallback(
     (id: string) => clients.find((c) => c.id === id),
     [clients]
   );
 
-  // ── Appointments ──
+  // ── Appointments ───────────────────────────────────────
   const addAppointment = useCallback(
-    (a: Omit<Appointment, "id">) =>
-      setAppointments((prev) => [...prev, { ...a, id: nextId("a") }]),
-    []
+    async (a: Omit<Appointment, "id">) => {
+      if (!userId) return;
+      const { data } = await supabase
+        .from("appointments")
+        .insert({
+          user_id: userId, client_id: a.clientId || null, title: a.title, date: a.date,
+          time: a.time, duration: a.duration, status: a.status, price: a.price, notes: a.notes,
+        })
+        .select()
+        .single();
+      if (data) setAppointments((prev) => [...prev, rowToAppointment(data)]);
+    },
+    [userId]
   );
+
   const updateAppointment = useCallback(
-    (id: string, a: Partial<Appointment>) =>
-      setAppointments((prev) => prev.map((x) => (x.id === id ? { ...x, ...a } : x))),
+    (id: string, a: Partial<Appointment>) => {
+      setAppointments((prev) => prev.map((x) => (x.id === id ? { ...x, ...a } : x)));
+      const dbFields: Record<string, unknown> = {};
+      if (a.clientId !== undefined) dbFields.client_id = a.clientId || null;
+      if (a.title !== undefined) dbFields.title = a.title;
+      if (a.date !== undefined) dbFields.date = a.date;
+      if (a.time !== undefined) dbFields.time = a.time;
+      if (a.duration !== undefined) dbFields.duration = a.duration;
+      if (a.status !== undefined) dbFields.status = a.status;
+      if (a.price !== undefined) dbFields.price = a.price;
+      if (a.notes !== undefined) dbFields.notes = a.notes;
+      supabase.from("appointments").update(dbFields).eq("id", id).then();
+    },
     []
   );
+
   const deleteAppointment = useCallback(
-    (id: string) => setAppointments((prev) => prev.filter((x) => x.id !== id)),
+    (id: string) => {
+      setAppointments((prev) => prev.filter((x) => x.id !== id));
+      supabase.from("appointments").delete().eq("id", id).then();
+    },
     []
   );
+
   const setAppointmentStatus = useCallback(
-    (id: string, status: AppointmentStatus) =>
-      setAppointments((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x))),
+    (id: string, status: AppointmentStatus) => {
+      setAppointments((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+      supabase.from("appointments").update({ status }).eq("id", id).then();
+    },
     []
   );
+
   const getTodayAppointments = useCallback(
-    () =>
-      appointments
-        .filter((a) => a.date === today() && a.status !== "canceled")
-        .sort((a, b) => a.time.localeCompare(b.time)),
-    [appointments]
-  );
-  const getClientAppointments = useCallback(
-    (clientId: string) =>
-      appointments
-        .filter((a) => a.clientId === clientId)
-        .sort((a, b) => b.date.localeCompare(a.date)),
+    () => appointments
+      .filter((a) => a.date === today() && a.status !== "canceled")
+      .sort((a, b) => a.time.localeCompare(b.time)),
     [appointments]
   );
 
-  // ── Invoices ──
+  const getClientAppointments = useCallback(
+    (clientId: string) => appointments
+      .filter((a) => a.clientId === clientId)
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [appointments]
+  );
+
+  // ── Invoices ───────────────────────────────────────────
   const addInvoice = useCallback(
-    (i: Omit<Invoice, "id">) =>
-      setInvoices((prev) => [...prev, { ...i, id: nextId("inv") }]),
-    []
+    async (i: Omit<Invoice, "id">) => {
+      if (!userId) return;
+      const { data } = await supabase
+        .from("invoices")
+        .insert({
+          user_id: userId, client_id: i.clientId || null, appointment_id: i.appointmentId || null,
+          amount: i.amount, status: i.status, date: i.date, description: i.description,
+          items: i.items || [],
+        })
+        .select()
+        .single();
+      if (data) setInvoices((prev) => [rowToInvoice(data), ...prev]);
+    },
+    [userId]
   );
+
   const setInvoiceStatus = useCallback(
-    (id: string, status: PaymentStatus) =>
-      setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x))),
+    (id: string, status: PaymentStatus) => {
+      setInvoices((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+      supabase.from("invoices").update({ status }).eq("id", id).then();
+    },
     []
   );
+
   const getClientInvoices = useCallback(
-    (clientId: string) =>
-      invoices.filter((i) => i.clientId === clientId).sort((a, b) => b.date.localeCompare(a.date)),
+    (clientId: string) => invoices
+      .filter((i) => i.clientId === clientId)
+      .sort((a, b) => b.date.localeCompare(a.date)),
     [invoices]
   );
 
   const getTodayRevenue = useCallback(
-    () =>
-      invoices
-        .filter((i) => i.date === today() && i.status === "paid")
-        .reduce((s, i) => s + i.amount, 0),
+    () => invoices
+      .filter((i) => i.date === today() && i.status === "paid")
+      .reduce((s, i) => s + i.amount, 0),
     [invoices]
   );
 
@@ -238,21 +391,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [invoices]
   );
 
-  // ── Stock ──
+  // ── Stock ──────────────────────────────────────────────
   const addProduct = useCallback(
-    (p: Omit<Product, "id">) =>
-      setProducts((prev) => [...prev, { ...p, id: nextId("p") }]),
-    []
+    async (p: Omit<Product, "id">) => {
+      if (!userId) return;
+      const { data } = await supabase
+        .from("products")
+        .insert({
+          user_id: userId, name: p.name, quantity: p.quantity, min_quantity: p.minQuantity,
+          price: p.price, category: p.category, emoji: p.emoji,
+        })
+        .select()
+        .single();
+      if (data) setProducts((prev) => [...prev, rowToProduct(data)]);
+    },
+    [userId]
   );
+
   const updateProduct = useCallback(
-    (id: string, p: Partial<Product>) =>
-      setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...p } : x))),
+    (id: string, p: Partial<Product>) => {
+      setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...p } : x)));
+      const dbFields: Record<string, unknown> = {};
+      if (p.name !== undefined) dbFields.name = p.name;
+      if (p.quantity !== undefined) dbFields.quantity = p.quantity;
+      if (p.minQuantity !== undefined) dbFields.min_quantity = p.minQuantity;
+      if (p.price !== undefined) dbFields.price = p.price;
+      if (p.category !== undefined) dbFields.category = p.category;
+      if (p.emoji !== undefined) dbFields.emoji = p.emoji;
+      supabase.from("products").update(dbFields).eq("id", id).then();
+    },
     []
   );
+
   const deleteProduct = useCallback(
-    (id: string) => setProducts((prev) => prev.filter((x) => x.id !== id)),
+    (id: string) => {
+      setProducts((prev) => prev.filter((x) => x.id !== id));
+      supabase.from("products").delete().eq("id", id).then();
+    },
     []
   );
+
   const getLowStockProducts = useCallback(
     () => products.filter((p) => p.quantity <= p.minQuantity),
     [products]
@@ -263,35 +441,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        hasOnboarded,
-        completeOnboarding,
-        user,
-        updateUser,
-        clients,
-        addClient,
-        updateClient,
-        deleteClient,
-        getClient,
-        appointments,
-        addAppointment,
-        updateAppointment,
-        deleteAppointment,
-        setAppointmentStatus,
-        getTodayAppointments,
-        getClientAppointments,
-        invoices,
-        addInvoice,
-        setInvoiceStatus,
-        getClientInvoices,
-        getTodayRevenue,
-        getWeekRevenue,
-        getMonthRevenue,
-        getPendingAmount,
-        products,
-        addProduct,
-        updateProduct,
-        deleteProduct,
-        getLowStockProducts,
+        hasOnboarded, completeOnboarding,
+        user, updateUser,
+        clients, addClient, updateClient, deleteClient, getClient,
+        appointments, addAppointment, updateAppointment, deleteAppointment,
+        setAppointmentStatus, getTodayAppointments, getClientAppointments,
+        invoices, addInvoice, setInvoiceStatus, getClientInvoices,
+        getTodayRevenue, getWeekRevenue, getMonthRevenue, getPendingAmount,
+        products, addProduct, updateProduct, deleteProduct, getLowStockProducts,
       }}
     >
       {children}
