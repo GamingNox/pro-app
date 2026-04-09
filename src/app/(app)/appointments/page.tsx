@@ -49,7 +49,7 @@ const statusMap: Record<AppointmentStatus, { label: string; color: string; bg: s
 type View = "calendar" | "list";
 
 export default function AppointmentsPage() {
-  const { appointments, clients, getClient, addAppointment, setAppointmentStatus, deleteAppointment } = useApp();
+  const { appointments, clients, services, getClient, addAppointment, setAppointmentStatus, deleteAppointment } = useApp();
   const searchParams = useSearchParams();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -285,6 +285,21 @@ export default function AppointmentsPage() {
       {/* New Modal */}
       <Modal open={showNew} onClose={() => setShowNew(false)} title="Nouveau rendez-vous">
         <div className="space-y-4">
+          {/* Quick service selection */}
+          {services.length > 0 && (
+            <div>
+              <label className="text-[12px] text-muted font-medium mb-1.5 block">Service rapide</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {services.filter((s) => s.active).map((svc) => (
+                  <button key={svc.id}
+                    onClick={() => setForm({ ...form, title: svc.name, duration: String(svc.duration), price: String(svc.price) })}
+                    className={`text-[11px] font-medium px-3 py-1.5 rounded-lg transition-all ${form.title === svc.name ? "bg-accent text-white" : "bg-border-light text-muted"}`}>
+                    {svc.name} · {svc.price}€
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div>
             <label className="text-[12px] text-muted font-medium mb-1.5 block">Titre</label>
             <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}

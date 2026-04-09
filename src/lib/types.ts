@@ -10,6 +10,16 @@ export interface Client {
   avatar: string; // initials-based color
 }
 
+// ── Services ─────────────────────────────────────────────
+export interface Service {
+  id: string;
+  name: string;
+  duration: number; // minutes
+  price: number;
+  description: string;
+  active: boolean;
+}
+
 // ── Appointments ─────────────────────────────────────────
 export type AppointmentStatus = "confirmed" | "done" | "canceled";
 
@@ -50,7 +60,7 @@ export interface Product {
   id: string;
   name: string;
   quantity: number;
-  minQuantity: number; // threshold for low-stock alert
+  minQuantity: number;
   price: number;
   category: string;
   emoji: string;
@@ -62,4 +72,5 @@ export interface UserProfile {
   business: string;
   phone: string;
   email: string;
+  bookingSlug?: string;
 }

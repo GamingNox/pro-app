@@ -4,18 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  CalendarDays,
-  Users,
   LayoutGrid,
-  Wallet,
+  CalendarDays,
+  Briefcase,
+  Users,
   User,
 } from "lucide-react";
 
 const tabs = [
-  { href: "/appointments", label: "RDV", icon: CalendarDays, center: false },
-  { href: "/clients", label: "Clients", icon: Users, center: false },
   { href: "/", label: "Accueil", icon: LayoutGrid, center: true },
-  { href: "/finances", label: "Finances", icon: Wallet, center: false },
+  { href: "/appointments", label: "RDV", icon: CalendarDays, center: false },
+  { href: "/gestion", label: "Gestion", icon: Briefcase, center: false },
+  { href: "/clients", label: "Clients", icon: Users, center: false },
   { href: "/profile", label: "Profil", icon: User, center: false },
 ];
 
@@ -37,17 +37,17 @@ export default function BottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="relative flex items-center justify-center -mt-5"
+                className="relative flex flex-col items-center justify-center gap-[3px] flex-1 h-full"
               >
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className={`w-[52px] h-[52px] rounded-[18px] flex items-center justify-center transition-all duration-200 ${
+                  className={`w-10 h-10 rounded-[14px] flex items-center justify-center transition-all duration-200 ${
                     isActive
                       ? "bg-accent fab-shadow"
-                      : "bg-foreground shadow-apple-lg"
+                      : "bg-foreground/90 shadow-apple"
                   }`}
                 >
-                  <Icon size={22} strokeWidth={1.8} className="text-white" />
+                  <Icon size={18} strokeWidth={1.8} className="text-white" />
                 </motion.div>
               </Link>
             );

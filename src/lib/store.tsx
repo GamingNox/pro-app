@@ -15,6 +15,7 @@ import type {
   Invoice,
   InvoiceItem,
   Product,
+  Service,
   AppointmentStatus,
   PaymentStatus,
   UserProfile,
@@ -24,6 +25,10 @@ import type {
 const today = () => new Date().toISOString().split("T")[0];
 
 const avatarColors = ["#7C3AED", "#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6", "#06B6D4", "#EF4444", "#14B8A6", "#F97316"];
+
+function generateSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "pro";
+}
 
 // ── DB row → app model mappers ───────────────────────────
 function rowToClient(r: Record<string, unknown>): Client {
@@ -78,17 +83,30 @@ function rowToProduct(r: Record<string, unknown>): Product {
   };
 }
 
+function rowToService(r: Record<string, unknown>): Service {
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    duration: r.duration as number,
+    price: Number(r.price),
+    description: (r.description as string) || "",
+    active: r.active as boolean,
+  };
+}
+
 // ── Context shape ────────────────────────────────────────
 interface AppState {
   hasOnboarded: boolean;
   completeOnboarding: () => void;
   user: UserProfile;
   updateUser: (u: Partial<UserProfile>) => void;
+
   clients: Client[];
   addClient: (c: Omit<Client, "id" | "createdAt" | "avatar">) => void;
   updateClient: (id: string, c: Partial<Client>) => void;
   deleteClient: (id: string) => void;
   getClient: (id: string) => Client | undefined;
+
   appointments: Appointment[];
   addAppointment: (a: Omit<Appointment, "id">) => void;
   updateAppointment: (id: string, a: Partial<Appointment>) => void;
@@ -96,6 +114,7 @@ interface AppState {
   setAppointmentStatus: (id: string, s: AppointmentStatus) => void;
   getTodayAppointments: () => Appointment[];
   getClientAppointments: (clientId: string) => Appointment[];
+
   invoices: Invoice[];
   addInvoice: (i: Omit<Invoice, "id">) => void;
   setInvoiceStatus: (id: string, s: PaymentStatus) => void;
@@ -104,14 +123,42 @@ interface AppState {
   getWeekRevenue: () => number;
   getMonthRevenue: () => number;
   getPendingAmount: () => number;
+
   products: Product[];
   addProduct: (p: Omit<Product, "id">) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   getLowStockProducts: () => Product[];
+
+  services: Service[];
+  addService: (s: Omit<Service, "id">) => void;
+  updateService: (id: string, s: Partial<Service>) => void;
+  deleteService: (id: string) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
+
+// ── Loading skeleton ─────────────────────────────────────
+function LoadingSkeleton() {
+  return (
+    <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto bg-background">
+      <div className="flex-1 px-6 pt-8">
+        <div className="skeleton h-4 w-32 mb-2" />
+        <div className="skeleton h-8 w-48 mb-8" />
+        <div className="flex gap-2.5 mb-6">
+          <div className="skeleton h-20 flex-1 rounded-2xl" />
+          <div className="skeleton h-20 flex-1 rounded-2xl" />
+          <div className="skeleton h-20 flex-1 rounded-2xl" />
+        </div>
+        <div className="skeleton h-36 w-full rounded-2xl mb-5" />
+        <div className="skeleton h-4 w-28 mb-3" />
+        <div className="skeleton h-24 w-full rounded-2xl mb-2" />
+        <div className="skeleton h-24 w-full rounded-2xl" />
+      </div>
+      <div className="h-14 bg-white shadow-nav" />
+    </div>
+  );
+}
 
 // ── Provider ─────────────────────────────────────────────
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -122,12 +169,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // ── Hydrate from Supabase ──────────────────────────────
   useEffect(() => {
     async function hydrate() {
-      // Get or create user profile
       const { data: profiles } = await supabase
         .from("user_profiles")
         .select("*")
@@ -138,7 +185,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const p = profiles[0];
         uid = p.id;
         setHasOnboarded(p.has_onboarded);
-        setUser({ name: p.name, business: p.business, phone: p.phone, email: p.email });
+        setUser({ name: p.name, business: p.business, phone: p.phone, email: p.email, bookingSlug: p.booking_slug || undefined });
       } else {
         const { data: newProfile } = await supabase
           .from("user_profiles")
@@ -149,18 +196,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       setUserId(uid);
 
-      // Load all data in parallel
-      const [cRes, aRes, iRes, pRes] = await Promise.all([
+      const [cRes, aRes, iRes, pRes, sRes] = await Promise.all([
         supabase.from("clients").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
         supabase.from("appointments").select("*").eq("user_id", uid),
         supabase.from("invoices").select("*").eq("user_id", uid).order("date", { ascending: false }),
         supabase.from("products").select("*").eq("user_id", uid),
+        supabase.from("services").select("*").eq("user_id", uid).order("created_at", { ascending: true }),
       ]);
 
       if (cRes.data) setClients(cRes.data.map(rowToClient));
       if (aRes.data) setAppointments(aRes.data.map(rowToAppointment));
       if (iRes.data) setInvoices(iRes.data.map(rowToInvoice));
       if (pRes.data) setProducts(pRes.data.map(rowToProduct));
+      if (sRes.data) setServices(sRes.data.map(rowToService));
 
       setIsHydrated(true);
     }
@@ -201,6 +249,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (payload.eventType === "DELETE") setProducts((prev) => prev.filter((p) => p.id !== payload.old.id));
         }
       )
+      .on("postgres_changes", { event: "*", schema: "public", table: "services", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (payload.eventType === "INSERT") setServices((prev) => [...prev, rowToService(payload.new)]);
+          if (payload.eventType === "UPDATE") setServices((prev) => prev.map((s) => s.id === payload.new.id ? rowToService(payload.new) : s));
+          if (payload.eventType === "DELETE") setServices((prev) => prev.filter((s) => s.id !== payload.old.id));
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -209,14 +264,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ── Onboarding ─────────────────────────────────────────
   const completeOnboarding = useCallback(() => {
     setHasOnboarded(true);
-    if (userId) supabase.from("user_profiles").update({ has_onboarded: true }).eq("id", userId).then();
-  }, [userId]);
+    if (userId) {
+      const slug = generateSlug(user.name || "pro") + "-" + userId.substring(0, 6);
+      setUser((prev) => ({ ...prev, bookingSlug: slug }));
+      supabase.from("user_profiles").update({ has_onboarded: true, booking_slug: slug }).eq("id", userId).then();
+    }
+  }, [userId, user.name]);
 
   // ── User ───────────────────────────────────────────────
   const updateUser = useCallback(
     (u: Partial<UserProfile>) => {
       setUser((prev) => ({ ...prev, ...u }));
-      if (userId) supabase.from("user_profiles").update(u).eq("id", userId).then();
+      if (userId) {
+        const dbFields: Record<string, unknown> = {};
+        if (u.name !== undefined) dbFields.name = u.name;
+        if (u.business !== undefined) dbFields.business = u.business;
+        if (u.phone !== undefined) dbFields.phone = u.phone;
+        if (u.email !== undefined) dbFields.email = u.email;
+        if (u.bookingSlug !== undefined) dbFields.booking_slug = u.bookingSlug;
+        supabase.from("user_profiles").update(dbFields).eq("id", userId).then();
+      }
     },
     [userId]
   );
@@ -362,9 +429,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const getTodayRevenue = useCallback(
-    () => invoices
-      .filter((i) => i.date === today() && i.status === "paid")
-      .reduce((s, i) => s + i.amount, 0),
+    () => invoices.filter((i) => i.date === today() && i.status === "paid").reduce((s, i) => s + i.amount, 0),
     [invoices]
   );
 
@@ -372,18 +437,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const now = new Date();
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
-    return invoices
-      .filter((i) => i.status === "paid" && new Date(i.date) >= weekAgo)
-      .reduce((s, i) => s + i.amount, 0);
+    return invoices.filter((i) => i.status === "paid" && new Date(i.date) >= weekAgo).reduce((s, i) => s + i.amount, 0);
   }, [invoices]);
 
   const getMonthRevenue = useCallback(() => {
     const now = new Date();
     const monthAgo = new Date(now);
     monthAgo.setDate(monthAgo.getDate() - 30);
-    return invoices
-      .filter((i) => i.status === "paid" && new Date(i.date) >= monthAgo)
-      .reduce((s, i) => s + i.amount, 0);
+    return invoices.filter((i) => i.status === "paid" && new Date(i.date) >= monthAgo).reduce((s, i) => s + i.amount, 0);
   }, [invoices]);
 
   const getPendingAmount = useCallback(
@@ -397,10 +458,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!userId) return;
       const { data } = await supabase
         .from("products")
-        .insert({
-          user_id: userId, name: p.name, quantity: p.quantity, min_quantity: p.minQuantity,
-          price: p.price, category: p.category, emoji: p.emoji,
-        })
+        .insert({ user_id: userId, name: p.name, quantity: p.quantity, min_quantity: p.minQuantity, price: p.price, category: p.category, emoji: p.emoji })
         .select()
         .single();
       if (data) setProducts((prev) => [...prev, rowToProduct(data)]);
@@ -436,7 +494,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [products]
   );
 
-  if (!isHydrated) return null;
+  // ── Services ───────────────────────────────────────────
+  const addService = useCallback(
+    async (s: Omit<Service, "id">) => {
+      if (!userId) return;
+      const { data } = await supabase
+        .from("services")
+        .insert({ user_id: userId, name: s.name, duration: s.duration, price: s.price, description: s.description, active: s.active })
+        .select()
+        .single();
+      if (data) setServices((prev) => [...prev, rowToService(data)]);
+    },
+    [userId]
+  );
+
+  const updateService = useCallback(
+    (id: string, s: Partial<Service>) => {
+      setServices((prev) => prev.map((x) => (x.id === id ? { ...x, ...s } : x)));
+      const dbFields: Record<string, unknown> = {};
+      if (s.name !== undefined) dbFields.name = s.name;
+      if (s.duration !== undefined) dbFields.duration = s.duration;
+      if (s.price !== undefined) dbFields.price = s.price;
+      if (s.description !== undefined) dbFields.description = s.description;
+      if (s.active !== undefined) dbFields.active = s.active;
+      supabase.from("services").update(dbFields).eq("id", id).then();
+    },
+    []
+  );
+
+  const deleteService = useCallback(
+    (id: string) => {
+      setServices((prev) => prev.filter((x) => x.id !== id));
+      supabase.from("services").delete().eq("id", id).then();
+    },
+    []
+  );
+
+  if (!isHydrated) return <LoadingSkeleton />;
 
   return (
     <AppContext.Provider
@@ -449,6 +543,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         invoices, addInvoice, setInvoiceStatus, getClientInvoices,
         getTodayRevenue, getWeekRevenue, getMonthRevenue, getPendingAmount,
         products, addProduct, updateProduct, deleteProduct, getLowStockProducts,
+        services, addService, updateService, deleteService,
       }}
     >
       {children}
