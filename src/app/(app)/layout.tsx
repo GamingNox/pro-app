@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto relative">
-      <main className="flex-1 flex flex-col overflow-hidden pb-[56px]">
+      <main className="flex-1 flex flex-col overflow-hidden pb-[58px]">
         {children}
       </main>
       <BottomNav />

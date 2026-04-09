@@ -12,10 +12,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: APP_NAME,
   description: APP_DESCRIPTION,
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: APP_NAME,
+  },
+  icons: {
+    icon: "/icon-192.svg",
+    apple: "/icon-192.svg",
   },
 };
 
@@ -30,7 +35,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={inter.className}>
-      <body className="h-full">
+      <body className="h-full bg-background">
         <AppProvider>{children}</AppProvider>
       </body>
     </html>

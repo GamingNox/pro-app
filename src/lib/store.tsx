@@ -138,24 +138,15 @@ interface AppState {
 
 const AppContext = createContext<AppState | null>(null);
 
-// ── Loading skeleton ─────────────────────────────────────
-function LoadingSkeleton() {
+// ── Splash screen ────────────────────────────────────────
+function SplashScreen() {
   return (
-    <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto bg-background">
-      <div className="flex-1 px-6 pt-8">
-        <div className="skeleton h-4 w-32 mb-2" />
-        <div className="skeleton h-8 w-48 mb-8" />
-        <div className="flex gap-2.5 mb-6">
-          <div className="skeleton h-20 flex-1 rounded-2xl" />
-          <div className="skeleton h-20 flex-1 rounded-2xl" />
-          <div className="skeleton h-20 flex-1 rounded-2xl" />
-        </div>
-        <div className="skeleton h-36 w-full rounded-2xl mb-5" />
-        <div className="skeleton h-4 w-28 mb-3" />
-        <div className="skeleton h-24 w-full rounded-2xl mb-2" />
-        <div className="skeleton h-24 w-full rounded-2xl" />
+    <div className="h-full h-[100dvh] flex flex-col items-center justify-center bg-background">
+      <div className="splash-logo w-16 h-16 rounded-[20px] bg-accent flex items-center justify-center shadow-apple-lg mb-5">
+        <span className="text-white text-[28px] font-bold">P</span>
       </div>
-      <div className="h-14 bg-white shadow-nav" />
+      <p className="splash-text text-[18px] font-bold text-foreground tracking-tight">ProApp</p>
+      <p className="splash-text text-[12px] text-muted mt-1">Gérez votre activité</p>
     </div>
   );
 }
@@ -530,7 +521,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  if (!isHydrated) return <LoadingSkeleton />;
+  if (!isHydrated) return <SplashScreen />;
 
   return (
     <AppContext.Provider

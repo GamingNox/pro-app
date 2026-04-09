@@ -4,17 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  LayoutGrid,
   CalendarDays,
   Briefcase,
+  LayoutGrid,
   Users,
   User,
 } from "lucide-react";
 
+// EXACT ORDER: RDV | Gestion | Accueil (center) | Clients | Profil
 const tabs = [
-  { href: "/", label: "Accueil", icon: LayoutGrid, center: true },
   { href: "/appointments", label: "RDV", icon: CalendarDays, center: false },
   { href: "/gestion", label: "Gestion", icon: Briefcase, center: false },
+  { href: "/", label: "Accueil", icon: LayoutGrid, center: true },
   { href: "/clients", label: "Clients", icon: Users, center: false },
   { href: "/profile", label: "Profil", icon: User, center: false },
 ];
@@ -24,7 +25,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-nav pb-safe">
-      <div className="max-w-lg mx-auto flex items-center justify-around h-[56px]">
+      <div className="max-w-lg mx-auto flex items-center justify-around h-[58px]">
         {tabs.map((tab) => {
           const isActive =
             tab.href === "/"
@@ -37,17 +38,17 @@ export default function BottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="relative flex flex-col items-center justify-center gap-[3px] flex-1 h-full"
+                className="relative flex items-center justify-center -mt-5 flex-1"
               >
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className={`w-10 h-10 rounded-[14px] flex items-center justify-center transition-all duration-200 ${
+                  className={`w-[52px] h-[52px] rounded-[18px] flex items-center justify-center transition-all duration-200 ${
                     isActive
                       ? "bg-accent fab-shadow"
-                      : "bg-foreground/90 shadow-apple"
+                      : "bg-foreground shadow-apple-lg"
                   }`}
                 >
-                  <Icon size={18} strokeWidth={1.8} className="text-white" />
+                  <Icon size={22} strokeWidth={1.8} className="text-white" />
                 </motion.div>
               </Link>
             );
