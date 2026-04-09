@@ -82,7 +82,7 @@ export default function GestionPage() {
   const selectedInv = selectedInvId ? invoices.find((i) => i.id === selectedInvId) : null;
 
   return (
-    <div className="flex-1 flex flex-col animate-in">
+    <div className="flex-1 flex flex-col bg-background">
       {/* Header */}
       <header className="px-6 pt-5 pb-3">
         <h1 className="text-[22px] font-bold text-foreground tracking-tight">Gestion</h1>
@@ -90,17 +90,17 @@ export default function GestionPage() {
 
       {/* Summary cards */}
       <div className="px-6 pb-4 grid grid-cols-3 gap-2">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+        <motion.div initial={{ y: 4 }} animate={{ y: 0 }}
           className="bg-white rounded-2xl p-3.5 text-center shadow-sm-apple">
           <p className="text-[18px] font-bold text-success">{paidTotal.toFixed(0)} €</p>
           <p className="text-[9px] text-muted mt-0.5">Encaissé</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+        <motion.div initial={{ y: 4 }} animate={{ y: 0 }} transition={{ delay: 0.05 }}
           className="bg-white rounded-2xl p-3.5 text-center shadow-sm-apple">
           <p className={`text-[18px] font-bold ${pending > 0 ? "text-warning" : "text-foreground"}`}>{pending.toFixed(0)} €</p>
           <p className="text-[9px] text-muted mt-0.5">En attente</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        <motion.div initial={{ y: 4 }} animate={{ y: 0 }} transition={{ delay: 0.1 }}
           className="bg-white rounded-2xl p-3.5 text-center shadow-sm-apple">
           <p className={`text-[18px] font-bold ${lowStock.length > 0 ? "text-danger" : "text-foreground"}`}>{lowStock.length}</p>
           <p className="text-[9px] text-muted mt-0.5">Stock bas</p>
@@ -139,7 +139,7 @@ export default function GestionPage() {
                 const client = getClient(inv.clientId);
                 const isPaid = inv.status === "paid";
                 return (
-                  <motion.button key={inv.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
+                  <motion.button key={inv.id} initial={{ y: 3 }} animate={{ y: 0 }} transition={{ delay: i * 0.02 }}
                     onClick={() => setSelectedInvId(inv.id)}
                     className="bg-white rounded-2xl p-3.5 shadow-sm-apple flex items-center gap-3 text-left w-full tap-scale">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isPaid ? "bg-success-soft" : "bg-warning-soft"}`}>

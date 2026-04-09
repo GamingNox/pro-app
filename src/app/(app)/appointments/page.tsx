@@ -105,8 +105,8 @@ export default function AppointmentsPage() {
     const StIcon = st.icon;
     return (
       <motion.button
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ y: 4 }}
+        animate={{ y: 0 }}
         transition={{ delay: i * 0.03 }}
         onClick={() => setSelectedAppt(appt.id)}
         className="bg-white rounded-2xl p-4 shadow-apple flex items-center gap-3.5 text-left w-full tap-scale"
@@ -148,7 +148,7 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col relative animate-in">
+    <div className="flex-1 flex flex-col relative bg-background">
       {/* Header */}
       <header className="px-6 pt-5 pb-2 flex items-center justify-between">
         <div>

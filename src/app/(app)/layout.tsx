@@ -15,11 +15,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [hasOnboarded, router]);
 
-  if (!hasOnboarded) return null;
+  // Never return null — always render bg to prevent white flash
+  if (!hasOnboarded) {
+    return <div className="h-full h-[100dvh] bg-background" />;
+  }
 
   return (
-    <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto relative">
-      <main className="flex-1 flex flex-col overflow-hidden pb-[58px]">
+    <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto relative bg-background">
+      <main className="flex-1 flex flex-col overflow-hidden pb-[58px] bg-background">
         {children}
       </main>
       <BottomNav />

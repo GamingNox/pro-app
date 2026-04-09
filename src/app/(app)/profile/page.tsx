@@ -53,7 +53,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex-1 custom-scroll animate-in">
+    <div className="flex-1 custom-scroll bg-background">
       {/* Avatar */}
       <div className="px-6 pt-8 pb-5 flex flex-col items-center text-center">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 15 }}

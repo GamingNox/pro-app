@@ -123,13 +123,13 @@ body {
   opacity: 0.85;
 }
 
-/* ── Page transition ──────────────────────────────────── */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ── Page transition (NO opacity:0 — prevents white flash) ── */
+@keyframes subtleIn {
+  from { transform: translateY(4px); }
+  to { transform: translateY(0); }
 }
 .animate-in {
-  animation: fadeInUp 0.3s ease-out;
+  animation: subtleIn 0.2s ease-out;
 }
 
 /* ── Backdrop blur for modals ─────────────────────────── */

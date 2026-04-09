@@ -62,7 +62,7 @@ export default function SubscriptionPage() {
             : plan.price;
 
           return (
-            <motion.button key={plan.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+            <motion.button key={plan.id} initial={{ y: 6 }} animate={{ y: 0 }} transition={{ delay: i * 0.08 }}
               onClick={() => setSelected(plan.id)}
               className={`w-full text-left rounded-2xl p-[2px] transition-all ${isSel ? "bg-accent" : "bg-border"}`}>
               <div className="bg-white rounded-[14px] p-4">
@@ -78,7 +78,7 @@ export default function SubscriptionPage() {
                 </div>
 
                 {isSel && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-2 pt-3 border-t border-border-light">
+                  <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} className="space-y-2 pt-3 border-t border-border-light">
                     {plan.features.map((f, j) => (
                       <div key={j} className="flex items-center gap-2.5">
                         {f.ok ? (

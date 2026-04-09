@@ -63,7 +63,7 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col animate-in">
+    <div className="flex-1 flex flex-col bg-background">
       {/* Header */}
       <header className="px-6 pt-5 pb-3 flex items-center justify-between">
         <div>
@@ -120,7 +120,7 @@ export default function ClientsPage() {
               const apptCount = appointments.filter((a) => a.clientId === client.id).length;
               return (
                 <motion.button key={client.id}
-                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  initial={{ y: 3 }} animate={{ y: 0 }}
                   transition={{ delay: i * 0.02 }}
                   onClick={() => { setSelectedId(client.id); setProfileTab("history"); setEditingNotes(false); }}
                   className="bg-white rounded-2xl p-3.5 shadow-sm-apple flex items-center gap-3.5 text-left w-full tap-scale">
