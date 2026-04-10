@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight, ArrowLeft, Sparkles, CalendarDays, BarChart3, Users,
+  ArrowRight, ArrowLeft, Sparkles, CalendarDays, BarChart3,
   Briefcase, User, Mail, Lock, Eye, EyeOff, Star, Shield, CheckCircle2, Play, Crown,
 } from "lucide-react";
 

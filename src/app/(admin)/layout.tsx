@@ -9,7 +9,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   useEffect(() => {
-    const auth = localStorage.getItem("admin-auth");
+    const auth = localStorage.getItem("admin-auth") || sessionStorage.getItem("admin-auth");
     if (auth === "true") {
       setAuthorized(true);
     } else {

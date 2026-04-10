@@ -10,7 +10,7 @@ const tabs = [
   { href: "/admin-plans", label: "ABONNEMENTS", icon: CreditCard },
   { href: "/admin-dashboard", label: "ACCUEIL", icon: LayoutGrid, center: true },
   { href: "/admin-analytics", label: "ANALYTICS", icon: BarChart3 },
-  { href: "/admin-settings", label: "RÉGLAGES", icon: Settings },
+  { href: "/admin-settings", label: "REGLAGES", icon: Settings },
 ];
 
 export default function AdminNav() {
@@ -18,7 +18,7 @@ export default function AdminNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass-nav shadow-nav">
-      <div className="max-w-md mx-auto flex items-end justify-evenly h-[82px] pb-safe px-2">
+      <div className="max-w-md mx-auto flex items-end justify-evenly h-[82px] pb-safe px-4">
         {tabs.map((tab) => {
           const isActive = pathname.startsWith(tab.href);
           const Icon = tab.icon;
@@ -36,10 +36,10 @@ export default function AdminNav() {
 
           return (
             <Link key={tab.href} href={tab.href} className="flex flex-col items-center justify-end gap-1 w-14 relative pb-2.5 pt-2.5">
-              <motion.div whileTap={{ scale: 0.85 }}>
-                <Icon size={20} strokeWidth={isActive ? 2 : 1.5} className={`transition-colors duration-300 ${isActive ? "text-accent" : "text-muted"}`} />
+              <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
+                <Icon size={21} strokeWidth={isActive ? 2 : 1.5} className={`transition-colors duration-300 ${isActive ? "text-accent" : "text-muted"}`} />
               </motion.div>
-              <span className={`text-[7px] leading-none tracking-wider ${isActive ? "text-accent font-bold" : "text-muted font-medium"}`}>
+              <span className={`text-[8px] leading-none tracking-wider ${isActive ? "text-accent font-bold" : "text-muted font-medium"}`}>
                 {tab.label}
               </span>
               {isActive && <motion.div layoutId="admin-nav" className="absolute top-0 w-5 h-[2.5px] rounded-full bg-accent" transition={{ type: "spring", stiffness: 400, damping: 30 }} />}

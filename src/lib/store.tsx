@@ -193,11 +193,43 @@ function SplashScreen() {
   );
 }
 
+// ── Synchronous session reader (runs ONCE at import time) ─
+// This determines auth state BEFORE React renders anything,
+// preventing flash/redirect to onboarding.
+function readSessionSync(): { onboarded: boolean; accountType?: AccountType; name?: string; email?: string } {
+  if (typeof window === "undefined") return { onboarded: false };
+  try {
+    // Demo accounts: kill session immediately on reload
+    if (localStorage.getItem("demo-mode") === "true") {
+      localStorage.removeItem("demo-mode");
+      localStorage.removeItem("account-type");
+      localStorage.removeItem("lumiere-session");
+      return { onboarded: false };
+    }
+    const raw = localStorage.getItem("lumiere-session");
+    if (!raw) return { onboarded: false };
+    const s = JSON.parse(raw);
+    const accountType = (localStorage.getItem("account-type") || s.accountType) as AccountType | undefined;
+    return { onboarded: true, accountType, name: s.name, email: s.email };
+  } catch {
+    return { onboarded: false };
+  }
+}
+
 // ── Provider ─────────────────────────────────────────────
 export function AppProvider({ children }: { children: ReactNode }) {
+  // Read session synchronously so hasOnboarded is correct on FIRST render
+  const [cached] = useState(readSessionSync);
+
   const [userId, setUserId] = useState<string | null>(null);
-  const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [user, setUser] = useState<UserProfile>({ name: "", business: "", phone: "", email: "" });
+  const [hasOnboarded, setHasOnboarded] = useState(cached.onboarded);
+  const [user, setUser] = useState<UserProfile>({
+    name: cached.name || "",
+    business: "",
+    phone: "",
+    email: cached.email || "",
+    accountType: cached.accountType,
+  });
   const [clients, setClients] = useState<Client[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -208,70 +240,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
-  // ── Hydrate from Supabase + restore session ────────────
+  // ── Hydrate from Supabase (enrich with full data) ──────
   useEffect(() => {
     async function hydrate() {
-      // Check for demo session first — demo accounts must NOT persist
-      const isDemo = localStorage.getItem("demo-mode") === "true";
-      if (isDemo) {
-        // Clear all demo session data on reload
-        localStorage.removeItem("demo-mode");
-        localStorage.removeItem("account-type");
-        localStorage.removeItem("lumiere-session");
-        // Don't auto-login — user goes to onboarding
-        setIsHydrated(true);
-        return;
-      }
-
-      const { data: profiles } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .limit(1);
-
-      let uid: string;
-      if (profiles && profiles.length > 0) {
-        const p = profiles[0];
-        uid = p.id;
-        setHasOnboarded(p.has_onboarded);
-
-        // Restore account type from saved session
-        const savedAccountType = localStorage.getItem("account-type") as AccountType | null;
-
-        setUser({
-          name: p.name,
-          business: p.business,
-          phone: p.phone,
-          email: p.email,
-          bookingSlug: p.booking_slug || undefined,
-          accountType: savedAccountType || undefined,
-        });
-      } else {
-        const { data: newProfile } = await supabase
+      try {
+        const { data: profiles } = await supabase
           .from("user_profiles")
-          .insert({ name: "", business: "", phone: "", email: "", has_onboarded: false })
-          .select()
-          .single();
-        uid = newProfile!.id;
+          .select("*")
+          .limit(1);
+
+        let uid: string;
+        if (profiles && profiles.length > 0) {
+          const p = profiles[0];
+          uid = p.id;
+
+          // Merge: Supabase data + localStorage session
+          const savedAccountType = localStorage.getItem("account-type") as AccountType | null;
+          const isOnboarded = p.has_onboarded || cached.onboarded;
+          setHasOnboarded(isOnboarded);
+
+          setUser((prev) => ({
+            name: p.name || prev.name,
+            business: p.business || prev.business,
+            phone: p.phone || prev.phone,
+            email: p.email || prev.email,
+            bookingSlug: p.booking_slug || prev.bookingSlug,
+            accountType: savedAccountType || prev.accountType,
+          }));
+
+          // Sync: if localStorage says onboarded but Supabase doesn't, fix Supabase
+          if (cached.onboarded && !p.has_onboarded) {
+            supabase.from("user_profiles").update({ has_onboarded: true }).eq("id", uid).then();
+          }
+        } else {
+          const { data: newProfile } = await supabase
+            .from("user_profiles")
+            .insert({ name: "", business: "", phone: "", email: "", has_onboarded: false })
+            .select()
+            .single();
+          uid = newProfile!.id;
+        }
+        setUserId(uid);
+
+        const [cRes, aRes, iRes, pRes, sRes] = await Promise.all([
+          supabase.from("clients").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
+          supabase.from("appointments").select("*").eq("user_id", uid),
+          supabase.from("invoices").select("*").eq("user_id", uid).order("date", { ascending: false }),
+          supabase.from("products").select("*").eq("user_id", uid),
+          supabase.from("services").select("*").eq("user_id", uid).order("created_at", { ascending: true }),
+        ]);
+
+        if (cRes.data) setClients(cRes.data.map(rowToClient));
+        if (aRes.data) setAppointments(aRes.data.map(rowToAppointment));
+        if (iRes.data) setInvoices(iRes.data.map(rowToInvoice));
+        if (pRes.data) setProducts(pRes.data.map(rowToProduct));
+        if (sRes.data) setServices(sRes.data.map(rowToService));
+      } catch (err) {
+        console.error("Hydration error:", err);
       }
-      setUserId(uid);
-
-      const [cRes, aRes, iRes, pRes, sRes] = await Promise.all([
-        supabase.from("clients").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
-        supabase.from("appointments").select("*").eq("user_id", uid),
-        supabase.from("invoices").select("*").eq("user_id", uid).order("date", { ascending: false }),
-        supabase.from("products").select("*").eq("user_id", uid),
-        supabase.from("services").select("*").eq("user_id", uid).order("created_at", { ascending: true }),
-      ]);
-
-      if (cRes.data) setClients(cRes.data.map(rowToClient));
-      if (aRes.data) setAppointments(aRes.data.map(rowToAppointment));
-      if (iRes.data) setInvoices(iRes.data.map(rowToInvoice));
-      if (pRes.data) setProducts(pRes.data.map(rowToProduct));
-      if (sRes.data) setServices(sRes.data.map(rowToService));
-
       setIsHydrated(true);
     }
     hydrate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Dismiss splash after hydration + minimum display time
@@ -329,29 +359,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   // ── Onboarding ─────────────────────────────────────────
+  // FIX: Uses setUser callback to read CURRENT state, not stale closure.
+  // This is critical because onboarding calls updateUser() then completeOnboarding()
+  // in the same event handler — React batches state updates, so the closure
+  // would have the OLD user values.
   const completeOnboarding = useCallback(() => {
     setHasOnboarded(true);
     const isDemo = localStorage.getItem("demo-mode") === "true";
 
-    // Save account type for persistent routing
-    if (user.accountType) localStorage.setItem("account-type", user.accountType);
+    // Demo accounts: never persist, early return
+    if (isDemo) return;
 
-    // Save session info for persistence (not for demo)
-    if (!isDemo) {
+    // Use setUser callback to access the LATEST user state
+    setUser((currentUser) => {
+      const acctType = currentUser.accountType || "pro";
+
+      // Save session to localStorage for persistence across visits
+      localStorage.setItem("account-type", acctType);
       localStorage.setItem("lumiere-session", JSON.stringify({
-        accountType: user.accountType || "pro",
-        name: user.name,
-        email: user.email,
+        accountType: acctType,
+        name: currentUser.name,
+        email: currentUser.email,
       }));
-    }
 
-    // Don't persist demo accounts to Supabase
-    if (userId && !isDemo) {
-      const slug = generateSlug(user.name || "pro") + "-" + userId.substring(0, 6);
-      setUser((prev) => ({ ...prev, bookingSlug: slug }));
-      supabase.from("user_profiles").update({ has_onboarded: true, booking_slug: slug }).eq("id", userId).then();
-    }
-  }, [userId, user.name, user.email, user.accountType]);
+      // Persist to Supabase
+      if (userId) {
+        const slug = generateSlug(currentUser.name || "pro") + "-" + userId.substring(0, 6);
+        supabase.from("user_profiles").update({
+          has_onboarded: true,
+          booking_slug: slug,
+        }).eq("id", userId).then();
+        return { ...currentUser, bookingSlug: slug };
+      }
+      return currentUser;
+    });
+  }, [userId]);
 
   const logout = useCallback(() => {
     setHasOnboarded(false);
@@ -370,7 +412,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateUser = useCallback(
     (u: Partial<UserProfile>) => {
       setUser((prev) => ({ ...prev, ...u }));
-      if (userId) {
+      const isDemo = localStorage.getItem("demo-mode") === "true";
+      if (userId && !isDemo) {
         const dbFields: Record<string, unknown> = {};
         if (u.name !== undefined) dbFields.name = u.name;
         if (u.business !== undefined) dbFields.business = u.business;
