@@ -49,7 +49,7 @@ export default function ClientAccountPage() {
               <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
             </div>
             <h2 className="text-[24px] font-bold text-foreground tracking-tight">{user.name || "Client"}</h2>
-            <p className="text-[13px] text-muted mt-1">Membre Privilège depuis 2024</p>
+            <p className="text-[13px] text-muted mt-1">{user.email || ""}</p>
           </div>
 
           {/* Menu */}

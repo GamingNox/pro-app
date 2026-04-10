@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useApp } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
-import { CreditCard, Plus, ChevronRight, CheckCircle2, X, Keyboard, Sparkles } from "lucide-react";
+import { CreditCard, Plus, ChevronRight, CheckCircle2, X, Keyboard, Gift } from "lucide-react";
 import Modal from "@/components/Modal";
 
 export default function ClientLoyaltyPage() {
@@ -13,20 +13,12 @@ export default function ClientLoyaltyPage() {
   const [addResult, setAddResult] = useState<"success" | "error" | null>(null);
   const [addedName, setAddedName] = useState("");
 
-  // Build client-visible cards from real store data + some demo cards
-  const realCards = loyaltyCards.map((card) => {
+  // Build client-visible cards from REAL store data only
+  const cards = loyaltyCards.map((card) => {
     const tpl = loyaltyTemplates.find((t) => t.id === card.templateId);
     if (!tpl) return null;
     return { id: card.id, name: tpl.name, program: tpl.mode === "visits" ? "Fidélité" : "Points", progress: card.progress, goal: tpl.goal, reward: tpl.reward, color: tpl.color, emoji: tpl.emoji, isPoints: tpl.mode === "points", code: card.code };
-  }).filter(Boolean);
-
-  // Demo cards (always shown)
-  const demoCards = [
-    { id: "demo1", name: "Café Éthéré", program: "Programme Artisan", progress: 8, goal: 10, reward: "Prochain café offert", color: "#007AFF", emoji: "☕", code: "" },
-    { id: "demo2", name: "L'Atelier Bien-être", program: "Membre Platine", progress: 450, goal: 500, reward: "-15% prochain soin", color: "#1D1D1F", emoji: "💆", isPoints: true, code: "" },
-  ];
-
-  const allCards = [...realCards, ...demoCards] as typeof demoCards;
+  }).filter(Boolean) as { id: string; name: string; program: string; progress: number; goal: number; reward: string; color: string; emoji: string; isPoints?: boolean; code: string }[];
 
   function handleAddCard() {
     const trimmed = code.trim().toUpperCase();
@@ -40,14 +32,7 @@ export default function ClientLoyaltyPage() {
       setAddResult("success");
       setCode("");
     } else {
-      // Accept any CLT- prefixed code as valid
-      if (trimmed.startsWith("CLT-")) {
-        setAddedName("Programme Fidélité");
-        setAddResult("success");
-        setCode("");
-      } else {
-        setAddResult("error");
-      }
+      setAddResult("error");
     }
   }
 
@@ -61,34 +46,44 @@ export default function ClientLoyaltyPage() {
       <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         <div className="px-6 pb-32">
           {/* Cards */}
-          <div className="space-y-4 mb-6">
-            {allCards.map((card, i) => (
-              <motion.div key={card.id} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.08 }}
-                className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ backgroundColor: card.color }}>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[14px] font-bold">{card.name}</p>
-                    <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider">{card.program}</p>
+          {cards.length > 0 ? (
+            <div className="space-y-4 mb-6">
+              {cards.map((card, i) => (
+                <motion.div key={card.id} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.08 }}
+                  className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ backgroundColor: card.color }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-[14px] font-bold">{card.name}</p>
+                      <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider">{card.program}</p>
+                    </div>
+                    <span className="text-[18px]">{card.emoji || "💎"}</span>
                   </div>
-                  <span className="text-[18px]">{card.emoji || "💎"}</span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <p className="text-[28px] font-bold leading-none">
-                    {card.isPoints ? `${card.progress} pts` : `${card.progress}/${card.goal}`}
-                  </p>
-                  <p className="text-[10px] text-white/70 font-semibold text-right max-w-[140px]">{card.reward}</p>
-                </div>
-                {!card.isPoints && card.goal > 0 && (
-                  <div className="w-full h-1.5 bg-white/20 rounded-full mt-3 overflow-hidden">
-                    <motion.div className="h-full bg-white rounded-full"
-                      initial={{ width: "0%" }} animate={{ width: `${Math.min((card.progress / card.goal) * 100, 100)}%` }}
-                      transition={{ duration: 0.8 }} />
+                  <div className="flex items-end justify-between">
+                    <p className="text-[28px] font-bold leading-none">
+                      {card.isPoints ? `${card.progress} pts` : `${card.progress}/${card.goal}`}
+                    </p>
+                    <p className="text-[10px] text-white/70 font-semibold text-right max-w-[140px]">{card.reward}</p>
                   </div>
-                )}
-                {card.code && <p className="text-[9px] text-white/30 mt-2 tracking-wider">{card.code}</p>}
-              </motion.div>
-            ))}
-          </div>
+                  {!card.isPoints && card.goal > 0 && (
+                    <div className="w-full h-1.5 bg-white/20 rounded-full mt-3 overflow-hidden">
+                      <motion.div className="h-full bg-white rounded-full"
+                        initial={{ width: "0%" }} animate={{ width: `${Math.min((card.progress / card.goal) * 100, 100)}%` }}
+                        transition={{ duration: 0.8 }} />
+                    </div>
+                  )}
+                  {card.code && <p className="text-[9px] text-white/30 mt-2 tracking-wider">{card.code}</p>}
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl p-8 shadow-card-premium text-center mb-6">
+              <Gift size={32} className="text-muted mx-auto mb-3" />
+              <p className="text-[16px] font-bold text-foreground">Aucune carte fidélité</p>
+              <p className="text-[12px] text-muted mt-1.5 leading-relaxed max-w-[240px] mx-auto">
+                Demandez un code à votre professionnel pour ajouter votre première carte.
+              </p>
+            </div>
+          )}
 
           {/* Add card */}
           <motion.button whileTap={{ scale: 0.98 }} onClick={() => { setShowAddCard(true); setAddResult(null); setCode(""); }}
@@ -99,32 +94,6 @@ export default function ClientLoyaltyPage() {
             <p className="text-[15px] font-bold text-foreground">Ajouter une carte</p>
             <p className="text-[12px] text-muted text-center">Entrez le code fourni par votre professionnel.</p>
           </motion.button>
-
-          {/* Special offer */}
-          <div className="bg-white rounded-[22px] p-5 shadow-card-premium mb-6">
-            <span className="text-[9px] font-bold text-accent bg-accent-soft px-2.5 py-1 rounded-md uppercase tracking-wider">Offre spéciale</span>
-            <h3 className="text-[18px] font-bold text-foreground mt-3">Doublez vos points !</h3>
-            <p className="text-[12px] text-muted mt-1.5 leading-relaxed">Profitez de chaque réservation pour doubler vos points cette semaine.</p>
-            <motion.button whileTap={{ scale: 0.95 }} className="mt-3 bg-accent text-white px-4 py-2 rounded-xl text-[12px] font-bold flex items-center gap-1.5">
-              En savoir plus <ChevronRight size={13} />
-            </motion.button>
-          </div>
-
-          {/* History */}
-          <h2 className="text-[16px] font-bold text-foreground mb-3">Historique</h2>
-          <div className="space-y-2.5">
-            {[
-              { title: "Visite validée", date: "Aujourd'hui", points: "+1", color: "text-accent" },
-              { title: "Achat - Café Éthéré", date: "14 Jan 2024", points: "+1 point", color: "text-accent" },
-              { title: "Récompense utilisée", date: "08 Jan 2024", points: "-10 pts", color: "text-danger" },
-            ].map((item, i) => (
-              <div key={i} className="bg-white rounded-2xl p-4 shadow-sm-apple flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-border-light flex items-center justify-center"><CreditCard size={16} className="text-muted" /></div>
-                <div className="flex-1"><p className="text-[13px] font-bold text-foreground">{item.title}</p><p className="text-[10px] text-muted">{item.date}</p></div>
-                <span className={`text-[13px] font-bold ${item.color}`}>{item.points}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 

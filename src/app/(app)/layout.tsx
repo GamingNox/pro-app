@@ -3,7 +3,6 @@
 import { useApp } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -14,14 +13,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!hasOnboarded) {
       router.replace("/onboarding");
     } else if (user.accountType === "client") {
-      // Client accounts should use the client layout
       router.replace("/client-home");
     }
   }, [hasOnboarded, user.accountType, router]);
 
-  if (!hasOnboarded || user.accountType === "client") {
-    return <div className="h-full h-[100dvh] bg-background" />;
-  }
+  // Only block render for clear redirect cases
+  if (!hasOnboarded) return <div className="h-full h-[100dvh] bg-background" />;
+  if (user.accountType === "client") return <div className="h-full h-[100dvh] bg-background" />;
 
   return (
     <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto relative bg-background">

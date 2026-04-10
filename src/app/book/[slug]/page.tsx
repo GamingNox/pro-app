@@ -134,7 +134,7 @@ export default function BookingPage() {
 
   // ── Create booking ─────────────────────────────────────
   async function handleBook() {
-    if (!selectedService || !selectedDate || !selectedTime || !clientFirst.trim() || !profile) return;
+    if (!selectedService || !selectedDate || !selectedTime || !clientFirst.trim() || !profile || !service) return;
     setBooking(true);
 
     const isGuest = mode === "guest";
@@ -175,12 +175,12 @@ export default function BookingPage() {
     const appointmentRecord: Record<string, unknown> = {
       user_id: profile.id,
       client_id: clientId,
-      title: `${service?.name || "RDV"} - ${clientFirst.trim()} ${clientLast.trim()}`,
+      title: `${service.name} - ${clientFirst.trim()} ${clientLast.trim()}`,
       date: selectedDate,
       time: selectedTime,
-      duration: service?.duration || 60,
+      duration: service.duration,
       status: "confirmed",
-      price: service?.price || 0,
+      price: service.price,
       notes: clientNote.trim() ? `Réservation en ligne\n${clientNote.trim()}` : "Réservation en ligne",
       is_guest: isGuest,
       guest_name: isGuest ? `${clientFirst.trim()} ${clientLast.trim()}` : null,

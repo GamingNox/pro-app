@@ -9,20 +9,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const { hasOnboarded, user } = useApp();
   const router = useRouter();
 
-  const isClient = user.accountType === "client";
-
   useEffect(() => {
     if (!hasOnboarded) {
       router.replace("/onboarding");
-    } else if (!isClient) {
-      // Non-client accounts (pro or unset) should use the pro layout
+    } else if (user.accountType !== "client") {
+      // Only redirect if accountType is explicitly set to something else
       router.replace("/");
     }
-  }, [hasOnboarded, isClient, router]);
+  }, [hasOnboarded, user.accountType, router]);
 
-  if (!hasOnboarded || !isClient) {
-    return <div className="h-full h-[100dvh] bg-background" />;
-  }
+  if (!hasOnboarded) return <div className="h-full h-[100dvh] bg-background" />;
+  if (user.accountType !== "client") return <div className="h-full h-[100dvh] bg-background" />;
 
   return (
     <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto relative bg-background">

@@ -6,11 +6,11 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Bell, Sparkles, ChevronRight, CalendarDays, CreditCard,
-  TrendingUp, Star, Tag,
+  Tag, Gift,
 } from "lucide-react";
 
 export default function ClientHomePage() {
-  const { user, appointments, invoices, getClient } = useApp();
+  const { user, appointments, invoices, loyaltyCards, loyaltyTemplates } = useApp();
 
   const totalSpent = useMemo(() =>
     invoices.filter((i) => i.status === "paid" && i.clientId !== "__expense__").reduce((s, i) => s + i.amount, 0)
@@ -21,6 +21,26 @@ export default function ClientHomePage() {
     return appointments.filter((a) => a.date >= today && a.status !== "canceled")
       .sort((a, b) => a.date.localeCompare(b.date)).slice(0, 2);
   }, [appointments]);
+
+  // Real monthly revenue comparison
+  const monthlyChange = useMemo(() => {
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
+    const thisMonth = invoices.filter((i) => i.status === "paid" && i.date >= thisMonthStart).reduce((s, i) => s + i.amount, 0);
+    const lastMonth = invoices.filter((i) => i.status === "paid" && i.date >= lastMonthStart && i.date < thisMonthStart).reduce((s, i) => s + i.amount, 0);
+    if (lastMonth === 0) return null;
+    return Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
+  }, [invoices]);
+
+  // Real spending chart from last 7 invoices
+  const chartData = useMemo(() => {
+    const paid = invoices.filter((i) => i.status === "paid" && i.clientId !== "__expense__")
+      .sort((a, b) => a.date.localeCompare(b.date)).slice(-7);
+    if (paid.length === 0) return [];
+    const max = Math.max(...paid.map((i) => i.amount), 1);
+    return paid.map((i) => Math.max(Math.round((i.amount / max) * 100), 8));
+  }, [invoices]);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -50,24 +70,26 @@ export default function ClientHomePage() {
       <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         <div className="px-6 pb-32 pt-4">
 
-          {/* Smart insight */}
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-accent-gradient rounded-2xl p-4 flex items-center gap-3.5 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <Sparkles size={18} className="text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-bold text-white">Smart Insight</p>
-              <p className="text-[11px] text-white/70 mt-0.5">Vous avez 2 récompenses disponibles !</p>
-            </div>
-            <Link href="/loyalty">
-              <motion.div whileTap={{ scale: 0.95 }} className="bg-white rounded-lg px-3 py-1.5 text-[11px] font-bold text-accent">
-                Voir
-              </motion.div>
-            </Link>
-          </motion.div>
+          {/* Smart insight — only show if there are real loyalty cards */}
+          {loyaltyCards.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-accent-gradient rounded-2xl p-4 flex items-center gap-3.5 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Gift size={18} className="text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold text-white">Vos cartes fidélité</p>
+                <p className="text-[11px] text-white/70 mt-0.5">{loyaltyCards.length} carte{loyaltyCards.length > 1 ? "s" : ""} active{loyaltyCards.length > 1 ? "s" : ""}.</p>
+              </div>
+              <Link href="/loyalty">
+                <motion.div whileTap={{ scale: 0.95 }} className="bg-white rounded-lg px-3 py-1.5 text-[11px] font-bold text-accent">
+                  Voir
+                </motion.div>
+              </Link>
+            </motion.div>
+          )}
 
-          {/* Spending card */}
+          {/* Spending card — real data only */}
           <div className="bg-white rounded-[22px] p-5 shadow-card-premium mb-5">
             <div className="flex items-center justify-between mb-1">
               <p className="text-[9px] text-muted font-bold uppercase tracking-wider">Total dépensé</p>
@@ -75,16 +97,23 @@ export default function ClientHomePage() {
             </div>
             <div className="flex items-end gap-2 mt-2 mb-4">
               <p className="text-[32px] font-bold text-foreground tracking-tight leading-none">{totalSpent.toFixed(2)} €</p>
-              <span className="text-[11px] font-bold text-success mb-1">+12%</span>
+              {monthlyChange !== null && (
+                <span className={`text-[11px] font-bold mb-1 ${monthlyChange >= 0 ? "text-success" : "text-danger"}`}>
+                  {monthlyChange >= 0 ? "+" : ""}{monthlyChange}%
+                </span>
+              )}
             </div>
-            {/* Mini chart placeholder */}
-            <div className="flex items-end gap-[5px] h-[48px]">
-              {[30, 45, 35, 55, 40, 65, 80].map((h, i) => (
-                <motion.div key={i} className={`flex-1 rounded-[3px] ${i === 6 ? "bg-accent" : "bg-accent/12"}`}
-                  initial={{ height: "10%" }} animate={{ height: `${h}%` }}
-                  transition={{ delay: 0.1 + i * 0.04, duration: 0.5 }} />
-              ))}
-            </div>
+            {chartData.length > 0 ? (
+              <div className="flex items-end gap-[5px] h-[48px]">
+                {chartData.map((h, i) => (
+                  <motion.div key={i} className={`flex-1 rounded-[3px] ${i === chartData.length - 1 ? "bg-accent" : "bg-accent/12"}`}
+                    initial={{ height: "10%" }} animate={{ height: `${h}%` }}
+                    transition={{ delay: 0.1 + i * 0.04, duration: 0.5 }} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted text-center py-3">Aucune dépense enregistrée.</p>
+            )}
           </div>
 
           {/* Upcoming appointments */}
@@ -137,30 +166,34 @@ export default function ClientHomePage() {
             </Link>
             <Link href="/loyalty" className="flex-1">
               <motion.div whileTap={{ scale: 0.95 }} className="bg-white rounded-2xl py-4 flex items-center justify-center gap-2 shadow-card-premium">
-                <Tag size={16} className="text-accent" /><span className="text-[13px] font-bold text-foreground">Voir Fidélité</span>
+                <Tag size={16} className="text-accent" /><span className="text-[13px] font-bold text-foreground">Fidélité</span>
               </motion.div>
             </Link>
           </div>
 
-          {/* Loyalty cards preview */}
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[17px] font-bold text-foreground">Mes Cartes</h2>
-            <Link href="/loyalty" className="text-[12px] text-accent font-bold flex items-center gap-0.5">
-              Tout voir <ChevronRight size={13} />
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-            <div className="min-w-[260px] bg-accent-gradient rounded-2xl p-5 text-white flex-shrink-0">
-              <p className="text-[9px] text-white/60 font-bold uppercase tracking-wider">Platinum member</p>
-              <p className="text-[18px] font-bold mt-3">{user.name || "Membre"}</p>
-              <p className="text-[11px] text-white/50 mt-1">8842 3319 0054</p>
-            </div>
-            <div className="min-w-[200px] bg-success rounded-2xl p-5 text-white flex-shrink-0">
-              <p className="text-[9px] text-white/60 font-bold uppercase tracking-wider">Spa Rewards</p>
-              <p className="text-[22px] font-bold mt-3">950</p>
-              <p className="text-[10px] text-white/60 mt-0.5">Points</p>
-            </div>
-          </div>
+          {/* Real loyalty cards — only show if user has any */}
+          {loyaltyCards.length > 0 && (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[17px] font-bold text-foreground">Mes Cartes</h2>
+                <Link href="/loyalty" className="text-[12px] text-accent font-bold flex items-center gap-0.5">
+                  Tout voir <ChevronRight size={13} />
+                </Link>
+              </div>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                {loyaltyCards.slice(0, 3).map((card) => {
+                  const template = loyaltyTemplates.find((t) => t.id === card.templateId);
+                  return (
+                    <div key={card.id} className="min-w-[240px] rounded-2xl p-5 text-white flex-shrink-0" style={{ backgroundColor: template?.color || "#7C3AED" }}>
+                      <p className="text-[9px] text-white/60 font-bold uppercase tracking-wider">{template?.emoji} {template?.name || "Carte fidélité"}</p>
+                      <p className="text-[22px] font-bold mt-3">{card.progress}<span className="text-[14px] text-white/40">/{template?.goal || "?"}</span></p>
+                      <p className="text-[10px] text-white/60 mt-0.5">{template?.mode === "points" ? "Points" : "Visites"}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
         </div>
       </div>
