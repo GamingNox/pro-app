@@ -33,6 +33,11 @@ export interface Appointment {
   status: AppointmentStatus;
   price: number;
   notes: string;
+  // Guest booking fields
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  isGuest?: boolean;
 }
 
 // ── Finances ─────────────────────────────────────────────

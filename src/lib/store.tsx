@@ -58,6 +58,10 @@ function rowToAppointment(r: Record<string, unknown>): Appointment {
     status: r.status as AppointmentStatus,
     price: Number(r.price),
     notes: r.notes as string,
+    guestName: (r.guest_name as string) || undefined,
+    guestEmail: (r.guest_email as string) || undefined,
+    guestPhone: (r.guest_phone as string) || undefined,
+    isGuest: (r.is_guest as boolean) || false,
   };
 }
 
@@ -473,14 +477,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addAppointment = useCallback(
     async (a: Omit<Appointment, "id">) => {
       if (!userId) return;
-      const { data } = await supabase
-        .from("appointments")
-        .insert({
-          user_id: userId, client_id: a.clientId || null, title: a.title, date: a.date,
-          time: a.time, duration: a.duration, status: a.status, price: a.price, notes: a.notes,
-        })
-        .select()
-        .single();
+      const row: Record<string, unknown> = {
+        user_id: userId, client_id: a.clientId || null, title: a.title, date: a.date,
+        time: a.time, duration: a.duration, status: a.status, price: a.price, notes: a.notes,
+      };
+      // Include guest fields if present
+      if (a.isGuest) {
+        row.is_guest = true;
+        row.guest_name = a.guestName || null;
+        row.guest_email = a.guestEmail || null;
+        row.guest_phone = a.guestPhone || null;
+      }
+      const { data } = await supabase.from("appointments").insert(row).select().single();
       if (data) setAppointments((prev) => [...prev, rowToAppointment(data)]);
     },
     [userId]
