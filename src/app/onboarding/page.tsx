@@ -222,6 +222,7 @@ export default function OnboardingPage() {
 
               <div className="w-full mt-8 space-y-4">
                 <motion.button whileTap={{ scale: 0.98 }} onClick={() => {
+                  // CRITICAL: Set demo-mode BEFORE updateUser so DB write is blocked
                   localStorage.setItem("demo-mode", "true");
                   updateUser({ name: "Marie Dupont", business: "Consultante", email: "marie@demo.com", accountType: "pro" });
                   completeOnboarding();
@@ -238,6 +239,7 @@ export default function OnboardingPage() {
                 </motion.button>
 
                 <motion.button whileTap={{ scale: 0.98 }} onClick={() => {
+                  // CRITICAL: Set demo-mode BEFORE updateUser so DB write is blocked
                   localStorage.setItem("demo-mode", "true");
                   updateUser({ name: "Julien Lefebvre", business: "", email: "julien@demo.com", accountType: "client" });
                   completeOnboarding();

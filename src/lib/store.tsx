@@ -197,13 +197,20 @@ function SplashScreen() {
   );
 }
 
-// ── Synchronous session reader (runs ONCE at import time) ─
-// This determines auth state BEFORE React renders anything,
-// preventing flash/redirect to onboarding.
-function readSessionSync(): { onboarded: boolean; accountType?: AccountType; name?: string; email?: string } {
+// ── Synchronous session reader ───────────────────────────
+// Reads localStorage BEFORE first render to prevent flash.
+// Returns cached data + userId for correct DB lookup.
+function readSessionSync(): {
+  onboarded: boolean;
+  userId?: string;
+  accountType?: AccountType;
+  name?: string;
+  email?: string;
+  isDemo?: boolean;
+} {
   if (typeof window === "undefined") return { onboarded: false };
   try {
-    // Demo accounts: kill session immediately on reload
+    // Demo accounts: kill session on reload — NEVER persist
     if (localStorage.getItem("demo-mode") === "true") {
       localStorage.removeItem("demo-mode");
       localStorage.removeItem("account-type");
@@ -213,19 +220,32 @@ function readSessionSync(): { onboarded: boolean; accountType?: AccountType; nam
     const raw = localStorage.getItem("lumiere-session");
     if (!raw) return { onboarded: false };
     const s = JSON.parse(raw);
-    const accountType = (localStorage.getItem("account-type") || s.accountType) as AccountType | undefined;
-    return { onboarded: true, accountType, name: s.name, email: s.email };
+    // CRITICAL: userId MUST be present for a valid session
+    if (!s.userId) {
+      // Corrupt/legacy session — clear it
+      localStorage.removeItem("lumiere-session");
+      localStorage.removeItem("account-type");
+      return { onboarded: false };
+    }
+    return {
+      onboarded: true,
+      userId: s.userId,
+      accountType: s.accountType as AccountType | undefined,
+      name: s.name,
+      email: s.email,
+    };
   } catch {
+    localStorage.removeItem("lumiere-session");
+    localStorage.removeItem("account-type");
     return { onboarded: false };
   }
 }
 
 // ── Provider ─────────────────────────────────────────────
 export function AppProvider({ children }: { children: ReactNode }) {
-  // Read session synchronously so hasOnboarded is correct on FIRST render
   const [cached] = useState(readSessionSync);
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(cached.userId || null);
   const [hasOnboarded, setHasOnboarded] = useState(cached.onboarded);
   const [user, setUser] = useState<UserProfile>({
     name: cached.name || "",
@@ -244,66 +264,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
-  // ── Hydrate from Supabase (enrich with full data) ──────
+  // ── Hydrate from Supabase ─────────────────────────────
   useEffect(() => {
     async function hydrate() {
       try {
-        const { data: profiles } = await supabase
-          .from("user_profiles")
-          .select("*")
-          .limit(1);
-
-        let uid: string;
-        if (profiles && profiles.length > 0) {
-          const p = profiles[0];
-          uid = p.id;
-
-          // Merge: Supabase data + localStorage session
-          const savedAccountType = localStorage.getItem("account-type") as AccountType | null;
-          const isOnboarded = p.has_onboarded || cached.onboarded;
-          setHasOnboarded(isOnboarded);
-
-          setUser((prev) => ({
-            name: p.name || prev.name,
-            business: p.business || prev.business,
-            phone: p.phone || prev.phone,
-            email: p.email || prev.email,
-            bookingSlug: p.booking_slug || prev.bookingSlug,
-            accountType: savedAccountType || prev.accountType,
-          }));
-
-          // Sync: if localStorage says onboarded but Supabase doesn't, fix Supabase
-          if (cached.onboarded && !p.has_onboarded) {
-            supabase.from("user_profiles").update({ has_onboarded: true }).eq("id", uid).then();
-          }
-        } else {
-          const { data: newProfile } = await supabase
+        // CASE 1: Returning user with saved session — look up BY userId
+        if (cached.userId) {
+          const { data: profile } = await supabase
             .from("user_profiles")
-            .insert({ name: "", business: "", phone: "", email: "", has_onboarded: false })
-            .select()
+            .select("*")
+            .eq("id", cached.userId)
             .single();
-          uid = newProfile!.id;
+
+          if (profile) {
+            setUser({
+              name: profile.name || cached.name || "",
+              business: profile.business || "",
+              phone: profile.phone || "",
+              email: profile.email || cached.email || "",
+              bookingSlug: profile.booking_slug || undefined,
+              accountType: cached.accountType,
+            });
+            // Load ONLY this user's data
+            await loadUserData(cached.userId);
+          } else {
+            // Profile was deleted — clear invalid session
+            clearSession();
+            setHasOnboarded(false);
+          }
         }
-        setUserId(uid);
-
-        const [cRes, aRes, iRes, pRes, sRes] = await Promise.all([
-          supabase.from("clients").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
-          supabase.from("appointments").select("*").eq("user_id", uid),
-          supabase.from("invoices").select("*").eq("user_id", uid).order("date", { ascending: false }),
-          supabase.from("products").select("*").eq("user_id", uid),
-          supabase.from("services").select("*").eq("user_id", uid).order("created_at", { ascending: true }),
-        ]);
-
-        if (cRes.data) setClients(cRes.data.map(rowToClient));
-        if (aRes.data) setAppointments(aRes.data.map(rowToAppointment));
-        if (iRes.data) setInvoices(iRes.data.map(rowToInvoice));
-        if (pRes.data) setProducts(pRes.data.map(rowToProduct));
-        if (sRes.data) setServices(sRes.data.map(rowToService));
+        // CASE 2: New visitor — do NOT create a profile yet.
+        // Profile is created only when they actually sign up.
       } catch (err) {
         console.error("Hydration error:", err);
       }
       setIsHydrated(true);
     }
+
+    async function loadUserData(uid: string) {
+      const [cRes, aRes, iRes, pRes, sRes] = await Promise.all([
+        supabase.from("clients").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
+        supabase.from("appointments").select("*").eq("user_id", uid),
+        supabase.from("invoices").select("*").eq("user_id", uid).order("date", { ascending: false }),
+        supabase.from("products").select("*").eq("user_id", uid),
+        supabase.from("services").select("*").eq("user_id", uid).order("created_at", { ascending: true }),
+      ]);
+      if (cRes.data) setClients(cRes.data.map(rowToClient));
+      if (aRes.data) setAppointments(aRes.data.map(rowToAppointment));
+      if (iRes.data) setInvoices(iRes.data.map(rowToInvoice));
+      if (pRes.data) setProducts(pRes.data.map(rowToProduct));
+      if (sRes.data) setServices(sRes.data.map(rowToService));
+    }
+
     hydrate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -362,68 +374,111 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
+  // ── Session helpers ─────────────────────────────────────
+  function saveSession(uid: string, acctType: string, name: string, email: string) {
+    localStorage.setItem("account-type", acctType);
+    localStorage.setItem("lumiere-session", JSON.stringify({
+      userId: uid,
+      accountType: acctType,
+      name,
+      email,
+    }));
+  }
+
+  function clearSession() {
+    localStorage.removeItem("account-type");
+    localStorage.removeItem("demo-mode");
+    localStorage.removeItem("lumiere-session");
+  }
+
   // ── Onboarding ─────────────────────────────────────────
-  // FIX: Uses setUser callback to read CURRENT state, not stale closure.
-  // This is critical because onboarding calls updateUser() then completeOnboarding()
-  // in the same event handler — React batches state updates, so the closure
-  // would have the OLD user values.
   const completeOnboarding = useCallback(() => {
     setHasOnboarded(true);
     const isDemo = localStorage.getItem("demo-mode") === "true";
 
-    // Demo accounts: never persist, early return
+    // Demo accounts: set state but NEVER persist or write to DB
     if (isDemo) return;
 
-    // Use setUser callback to access the LATEST user state
+    // Use setUser callback to read CURRENT state (avoids stale closure)
     setUser((currentUser) => {
       const acctType = currentUser.accountType || "pro";
 
-      // Save session to localStorage for persistence across visits
-      localStorage.setItem("account-type", acctType);
-      localStorage.setItem("lumiere-session", JSON.stringify({
-        accountType: acctType,
-        name: currentUser.name,
-        email: currentUser.email,
-      }));
-
-      // Persist to Supabase
       if (userId) {
+        // EXISTING profile — update it and save session
         const slug = generateSlug(currentUser.name || "pro") + "-" + userId.substring(0, 6);
+        saveSession(userId, acctType, currentUser.name, currentUser.email);
         supabase.from("user_profiles").update({
+          name: currentUser.name,
+          business: currentUser.business,
+          email: currentUser.email,
           has_onboarded: true,
           booking_slug: slug,
         }).eq("id", userId).then();
         return { ...currentUser, bookingSlug: slug };
+      } else {
+        // NEW user — create a fresh empty profile in Supabase
+        const tempSlug = generateSlug(currentUser.name || "pro") + "-" + Math.random().toString(36).slice(2, 8);
+        supabase.from("user_profiles")
+          .insert({
+            name: currentUser.name,
+            business: currentUser.business || "",
+            phone: "",
+            email: currentUser.email,
+            has_onboarded: true,
+            booking_slug: tempSlug,
+          })
+          .select()
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              const newId = data.id;
+              setUserId(newId);
+              saveSession(newId, acctType, currentUser.name, currentUser.email);
+              // Update slug with real ID
+              const realSlug = generateSlug(currentUser.name || "pro") + "-" + newId.substring(0, 6);
+              supabase.from("user_profiles").update({ booking_slug: realSlug }).eq("id", newId).then();
+              setUser((prev) => ({ ...prev, bookingSlug: realSlug }));
+            }
+          });
+        return { ...currentUser, bookingSlug: tempSlug };
       }
-      return currentUser;
     });
   }, [userId]);
 
   const logout = useCallback(() => {
+    // 1. Clear ALL in-memory state
     setHasOnboarded(false);
     setUser({ name: "", business: "", phone: "", email: "" });
-    // Completely clear all session data
-    localStorage.removeItem("account-type");
-    localStorage.removeItem("demo-mode");
-    localStorage.removeItem("lumiere-session");
-    // Update Supabase
+    setClients([]);
+    setAppointments([]);
+    setInvoices([]);
+    setProducts([]);
+    setServices([]);
+    setLoyaltyTemplates([]);
+    setLoyaltyCards([]);
+    // 2. Clear ALL localStorage
+    clearSession();
+    // 3. Mark as logged out in Supabase
     if (userId) {
       supabase.from("user_profiles").update({ has_onboarded: false }).eq("id", userId).then();
     }
+    setUserId(null);
   }, [userId]);
 
   // ── User ───────────────────────────────────────────────
   const updateUser = useCallback(
     (u: Partial<UserProfile>) => {
       setUser((prev) => ({ ...prev, ...u }));
+      // NEVER write to DB for demo accounts or when no userId
       const isDemo = localStorage.getItem("demo-mode") === "true";
-      if (userId && !isDemo) {
-        const dbFields: Record<string, unknown> = {};
-        if (u.name !== undefined) dbFields.name = u.name;
-        if (u.business !== undefined) dbFields.business = u.business;
-        if (u.phone !== undefined) dbFields.phone = u.phone;
-        if (u.email !== undefined) dbFields.email = u.email;
-        if (u.bookingSlug !== undefined) dbFields.booking_slug = u.bookingSlug;
+      if (!userId || isDemo) return;
+      const dbFields: Record<string, unknown> = {};
+      if (u.name !== undefined) dbFields.name = u.name;
+      if (u.business !== undefined) dbFields.business = u.business;
+      if (u.phone !== undefined) dbFields.phone = u.phone;
+      if (u.email !== undefined) dbFields.email = u.email;
+      if (u.bookingSlug !== undefined) dbFields.booking_slug = u.bookingSlug;
+      if (Object.keys(dbFields).length > 0) {
         supabase.from("user_profiles").update(dbFields).eq("id", userId).then();
       }
     },
