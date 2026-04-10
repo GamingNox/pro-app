@@ -66,11 +66,37 @@ export interface Product {
   emoji: string;
 }
 
+// ── Loyalty ──────────────────────────────────────────────
+export type LoyaltyMode = "visits" | "points";
+
+export interface LoyaltyTemplate {
+  id: string;
+  name: string;
+  color: string;
+  emoji: string;
+  mode: LoyaltyMode;
+  goal: number;
+  reward: string;
+  message: string;
+}
+
+export interface LoyaltyCard {
+  id: string;
+  templateId: string;
+  clientId: string;
+  code: string;
+  progress: number;
+  createdAt: string;
+}
+
 // ── User ─────────────────────────────────────────────────
+export type AccountType = "pro" | "client";
+
 export interface UserProfile {
   name: string;
   business: string;
   phone: string;
   email: string;
   bookingSlug?: string;
+  accountType?: AccountType;
 }

@@ -6,26 +6,25 @@ import { motion } from "framer-motion";
 import {
   CalendarDays,
   Briefcase,
-  LayoutGrid,
+  Home,
   Users,
   User,
 } from "lucide-react";
 
-// EXACT ORDER: RDV | Gestion | Accueil (center) | Clients | Profil
 const tabs = [
   { href: "/appointments", label: "RDV", icon: CalendarDays, center: false },
-  { href: "/gestion", label: "Gestion", icon: Briefcase, center: false },
-  { href: "/", label: "Accueil", icon: LayoutGrid, center: true },
-  { href: "/clients", label: "Clients", icon: Users, center: false },
-  { href: "/profile", label: "Profil", icon: User, center: false },
+  { href: "/clients", label: "CLIENTS", icon: Users, center: false },
+  { href: "/", label: "ACCUEIL", icon: Home, center: true },
+  { href: "/gestion", label: "GESTION", icon: Briefcase, center: false },
+  { href: "/profile", label: "PROFIL", icon: User, center: false },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-nav pb-safe">
-      <div className="max-w-lg mx-auto flex items-center justify-around h-[58px]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-nav shadow-nav">
+      <div className="max-w-md mx-auto flex items-end justify-evenly h-[82px] pb-safe px-4">
         {tabs.map((tab) => {
           const isActive =
             tab.href === "/"
@@ -38,17 +37,18 @@ export default function BottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="relative flex items-center justify-center -mt-5 flex-1"
+                className="relative flex items-center justify-center -mt-4 w-16 pb-2.5"
               >
                 <motion.div
-                  whileTap={{ scale: 0.9 }}
-                  className={`w-[52px] h-[52px] rounded-[18px] flex items-center justify-center transition-all duration-200 ${
+                  whileTap={{ scale: 0.88 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                  className={`w-[54px] h-[54px] rounded-[18px] flex items-center justify-center transition-all duration-300 ${
                     isActive
-                      ? "bg-accent fab-shadow"
-                      : "bg-foreground shadow-apple-lg"
+                      ? "bg-accent-gradient fab-shadow"
+                      : "bg-border-light shadow-apple"
                   }`}
                 >
-                  <Icon size={22} strokeWidth={1.8} className="text-white" />
+                  <Icon size={22} strokeWidth={1.8} className={isActive ? "text-white" : "text-muted"} />
                 </motion.div>
               </Link>
             );
@@ -58,26 +58,31 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex flex-col items-center justify-center gap-[3px] flex-1 h-full relative"
+              className="flex flex-col items-center justify-end gap-1 w-14 relative pb-2.5 pt-2.5"
             >
-              <Icon
-                size={20}
-                strokeWidth={isActive ? 2 : 1.5}
-                className={`transition-colors duration-200 ${
-                  isActive ? "text-accent" : "text-muted"
-                }`}
-              />
+              <motion.div
+                whileTap={{ scale: 0.85 }}
+                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+              >
+                <Icon
+                  size={21}
+                  strokeWidth={isActive ? 2 : 1.5}
+                  className={`transition-colors duration-300 ${
+                    isActive ? "text-accent" : "text-muted"
+                  }`}
+                />
+              </motion.div>
               <span
-                className={`text-[10px] leading-none transition-colors duration-200 ${
-                  isActive ? "text-accent font-semibold" : "text-muted font-medium"
+                className={`text-[8px] leading-none tracking-wider transition-all duration-300 ${
+                  isActive ? "text-accent font-bold" : "text-muted font-medium"
                 }`}
               >
                 {tab.label}
               </span>
-              {isActive && (
+              {isActive && !tab.center && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className="absolute -top-0.5 w-5 h-[2.5px] rounded-full bg-accent"
+                  className="absolute top-0 w-5 h-[2.5px] rounded-full bg-accent"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}

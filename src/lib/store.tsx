@@ -10,6 +10,7 @@ import {
 } from "react";
 import { supabase } from "./supabase";
 import type {
+  AccountType,
   Client,
   Appointment,
   Invoice,
@@ -19,6 +20,8 @@ import type {
   AppointmentStatus,
   PaymentStatus,
   UserProfile,
+  LoyaltyTemplate,
+  LoyaltyCard,
 } from "./types";
 
 // ── Helpers ──────────────────────────────────────────────
@@ -98,6 +101,7 @@ function rowToService(r: Record<string, unknown>): Service {
 interface AppState {
   hasOnboarded: boolean;
   completeOnboarding: () => void;
+  logout: () => void;
   user: UserProfile;
   updateUser: (u: Partial<UserProfile>) => void;
 
@@ -134,19 +138,57 @@ interface AppState {
   addService: (s: Omit<Service, "id">) => void;
   updateService: (id: string, s: Partial<Service>) => void;
   deleteService: (id: string) => void;
+
+  loyaltyTemplates: LoyaltyTemplate[];
+  addLoyaltyTemplate: (t: Omit<LoyaltyTemplate, "id">) => void;
+  deleteLoyaltyTemplate: (id: string) => void;
+  loyaltyCards: LoyaltyCard[];
+  addLoyaltyCard: (c: Omit<LoyaltyCard, "id" | "createdAt">) => void;
+  updateLoyaltyCard: (id: string, c: Partial<LoyaltyCard>) => void;
+  deleteLoyaltyCard: (id: string) => void;
+  getLoyaltyCardByCode: (code: string) => LoyaltyCard | undefined;
 }
 
 const AppContext = createContext<AppState | null>(null);
 
-// ── Splash screen ────────────────────────────────────────
+// ── Premium Splash Screen ────────────────────────────────
 function SplashScreen() {
+  const [phase, setPhase] = useState<"intro" | "exit">("intro");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPhase("exit"), 1600);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="h-full h-[100dvh] flex flex-col items-center justify-center bg-background">
-      <div className="splash-logo w-16 h-16 rounded-[20px] bg-accent flex items-center justify-center shadow-apple-lg mb-5">
-        <span className="text-white text-[28px] font-bold">P</span>
+    <div className={`h-full h-[100dvh] flex flex-col items-center justify-center bg-white relative overflow-hidden ${phase === "exit" ? "splash-fade-out" : ""}`}>
+      {/* Soft radial gradient background */}
+      <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 50% 40%, rgba(0,122,255,0.04) 0%, transparent 70%)" }} />
+
+      {/* Animated glow */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="splash-orb-glow w-40 h-40 rounded-full bg-accent/6 blur-3xl" />
       </div>
-      <p className="splash-text text-[18px] font-bold text-foreground tracking-tight">ProApp</p>
-      <p className="splash-text text-[12px] text-muted mt-1">Gérez votre activité</p>
+
+      {/* Main logo — minimal geometric mark */}
+      <div className="splash-orb relative z-10 w-[72px] h-[72px] rounded-[22px] bg-accent-gradient flex items-center justify-center shadow-apple-lg mb-7">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          {/* Minimal "L" lettermark for Lumière / the app */}
+          <rect x="8" y="7" width="4" height="18" rx="2" fill="white" fillOpacity="0.95"/>
+          <rect x="8" y="21" width="14" height="4" rx="2" fill="white" fillOpacity="0.95"/>
+          <circle cx="22" cy="11" r="3" fill="white" fillOpacity="0.4"/>
+        </svg>
+      </div>
+
+      {/* App name */}
+      <h1 className="splash-title relative z-10 text-[22px] font-bold text-foreground tracking-tight">
+        Lumière Pro
+      </h1>
+
+      {/* Tagline */}
+      <p className="splash-subtitle relative z-10 text-[12px] text-muted mt-2 tracking-wide font-medium">
+        Votre activité, simplifiée
+      </p>
     </div>
   );
 }
@@ -161,11 +203,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [loyaltyTemplates, setLoyaltyTemplates] = useState<LoyaltyTemplate[]>([]);
+  const [loyaltyCards, setLoyaltyCards] = useState<LoyaltyCard[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
-  // ── Hydrate from Supabase ──────────────────────────────
+  // ── Hydrate from Supabase + restore session ────────────
   useEffect(() => {
     async function hydrate() {
+      // Check for demo session first — demo accounts must NOT persist
+      const isDemo = localStorage.getItem("demo-mode") === "true";
+      if (isDemo) {
+        // Clear all demo session data on reload
+        localStorage.removeItem("demo-mode");
+        localStorage.removeItem("account-type");
+        localStorage.removeItem("lumiere-session");
+        // Don't auto-login — user goes to onboarding
+        setIsHydrated(true);
+        return;
+      }
+
       const { data: profiles } = await supabase
         .from("user_profiles")
         .select("*")
@@ -176,7 +233,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const p = profiles[0];
         uid = p.id;
         setHasOnboarded(p.has_onboarded);
-        setUser({ name: p.name, business: p.business, phone: p.phone, email: p.email, bookingSlug: p.booking_slug || undefined });
+
+        // Restore account type from saved session
+        const savedAccountType = localStorage.getItem("account-type") as AccountType | null;
+
+        setUser({
+          name: p.name,
+          business: p.business,
+          phone: p.phone,
+          email: p.email,
+          bookingSlug: p.booking_slug || undefined,
+          accountType: savedAccountType || undefined,
+        });
       } else {
         const { data: newProfile } = await supabase
           .from("user_profiles")
@@ -205,6 +273,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     hydrate();
   }, []);
+
+  // Dismiss splash after hydration + minimum display time
+  useEffect(() => {
+    if (isHydrated) {
+      const timer = setTimeout(() => setShowSplash(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [isHydrated]);
 
   // ── Realtime subscriptions ─────────────────────────────
   useEffect(() => {
@@ -255,12 +331,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ── Onboarding ─────────────────────────────────────────
   const completeOnboarding = useCallback(() => {
     setHasOnboarded(true);
-    if (userId) {
+    const isDemo = localStorage.getItem("demo-mode") === "true";
+
+    // Save account type for persistent routing
+    if (user.accountType) localStorage.setItem("account-type", user.accountType);
+
+    // Save session info for persistence (not for demo)
+    if (!isDemo) {
+      localStorage.setItem("lumiere-session", JSON.stringify({
+        accountType: user.accountType || "pro",
+        name: user.name,
+        email: user.email,
+      }));
+    }
+
+    // Don't persist demo accounts to Supabase
+    if (userId && !isDemo) {
       const slug = generateSlug(user.name || "pro") + "-" + userId.substring(0, 6);
       setUser((prev) => ({ ...prev, bookingSlug: slug }));
       supabase.from("user_profiles").update({ has_onboarded: true, booking_slug: slug }).eq("id", userId).then();
     }
-  }, [userId, user.name]);
+  }, [userId, user.name, user.email, user.accountType]);
+
+  const logout = useCallback(() => {
+    setHasOnboarded(false);
+    setUser({ name: "", business: "", phone: "", email: "" });
+    // Completely clear all session data
+    localStorage.removeItem("account-type");
+    localStorage.removeItem("demo-mode");
+    localStorage.removeItem("lumiere-session");
+    // Update Supabase
+    if (userId) {
+      supabase.from("user_profiles").update({ has_onboarded: false }).eq("id", userId).then();
+    }
+  }, [userId]);
 
   // ── User ───────────────────────────────────────────────
   const updateUser = useCallback(
@@ -521,12 +625,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  if (!isHydrated) return <SplashScreen />;
+  // ── Loyalty (local state — no Supabase table yet) ─────
+  const addLoyaltyTemplate = useCallback(
+    (t: Omit<LoyaltyTemplate, "id">) => {
+      const id = "lt_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      setLoyaltyTemplates((prev) => [...prev, { ...t, id }]);
+    }, []
+  );
+  const deleteLoyaltyTemplate = useCallback(
+    (id: string) => { setLoyaltyTemplates((prev) => prev.filter((x) => x.id !== id)); }, []
+  );
+  const addLoyaltyCard = useCallback(
+    (c: Omit<LoyaltyCard, "id" | "createdAt">) => {
+      const id = "lc_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      setLoyaltyCards((prev) => [...prev, { ...c, id, createdAt: new Date().toISOString().split("T")[0] }]);
+    }, []
+  );
+  const updateLoyaltyCard = useCallback(
+    (id: string, c: Partial<LoyaltyCard>) => { setLoyaltyCards((prev) => prev.map((x) => x.id === id ? { ...x, ...c } : x)); }, []
+  );
+  const deleteLoyaltyCard = useCallback(
+    (id: string) => { setLoyaltyCards((prev) => prev.filter((x) => x.id !== id)); }, []
+  );
+  const getLoyaltyCardByCode = useCallback(
+    (code: string) => loyaltyCards.find((c) => c.code === code), [loyaltyCards]
+  );
+
+  if (showSplash) return <SplashScreen />;
 
   return (
     <AppContext.Provider
       value={{
-        hasOnboarded, completeOnboarding,
+        hasOnboarded, completeOnboarding, logout,
         user, updateUser,
         clients, addClient, updateClient, deleteClient, getClient,
         appointments, addAppointment, updateAppointment, deleteAppointment,
@@ -535,6 +665,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getTodayRevenue, getWeekRevenue, getMonthRevenue, getPendingAmount,
         products, addProduct, updateProduct, deleteProduct, getLowStockProducts,
         services, addService, updateService, deleteService,
+        loyaltyTemplates, addLoyaltyTemplate, deleteLoyaltyTemplate,
+        loyaltyCards, addLoyaltyCard, updateLoyaltyCard, deleteLoyaltyCard, getLoyaltyCardByCode,
       }}
     >
       {children}

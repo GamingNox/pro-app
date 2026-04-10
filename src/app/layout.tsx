@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { AppProvider } from "@/lib/store";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
+import ThemeLoader from "@/components/ThemeLoader";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,8 +35,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={inter.className}>
+    <html lang="fr" className={inter.className} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{var c=localStorage.getItem("accent-color");if(c)document.documentElement.style.setProperty("--color-accent",c)}catch(e){}` }} />
+      </head>
       <body className="h-full bg-background">
+        <ThemeLoader />
         <AppProvider>{children}</AppProvider>
       </body>
     </html>
