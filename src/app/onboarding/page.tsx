@@ -3,14 +3,19 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight, ArrowLeft, Sparkles, CalendarDays, BarChart3,
-  Briefcase, User, Mail, Lock, Eye, EyeOff, Star, Shield, CheckCircle2, Play, Crown,
+  Briefcase, User, Mail, Lock, Eye, EyeOff, Star, Shield, CheckCircle2, Play, Crown, Loader2,
 } from "lucide-react";
 
 type Phase = "slides" | "landing" | "accountType" | "signup" | "login" | "demo";
 type AcctType = "pro" | "client";
+
+function generateSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "pro";
+}
 
 const SLIDES = [
   { title: "Bienvenue", desc: "On va t'aider à prendre en main ton activité avec une expérience fluide et sur mesure.", icon: Sparkles },
@@ -24,10 +29,12 @@ export default function OnboardingPage() {
   const [slide, setSlide] = useState(0);
   const [acctType, setAcctType] = useState<AcctType>("pro");
   const [showPw, setShowPw] = useState(false);
-  const [loginMode, setLoginMode] = useState(false); // true when coming from "Me reconnecter"
+  const [loginMode, setLoginMode] = useState(false);
   const [formData, setFormData] = useState({ name: "", business: "", company: "", email: "", password: "" });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
 
-  const { completeOnboarding, updateUser } = useApp();
+  const { completeAuth, startDemo } = useApp();
   const router = useRouter();
 
   function nextSlide() {
@@ -36,37 +43,80 @@ export default function OnboardingPage() {
   }
   function prevSlide() { if (slide > 0) setSlide((s) => s - 1); }
 
-  function handleSignup() {
-    if (!formData.name.trim() || !formData.email.trim()) return;
-    // Clear any stale demo flags
-    localStorage.removeItem("demo-mode");
-    updateUser({
-      name: formData.name.trim(),
-      business: acctType === "pro" ? formData.business.trim() || formData.company.trim() : "",
-      email: formData.email.trim(),
-      accountType: acctType,
-    });
-    completeOnboarding();
-    router.replace(acctType === "client" ? "/client-home" : "/");
+  // ── Real Supabase Auth Signup ──────────────────────────
+  async function handleSignup() {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) return;
+    if (formData.password.trim().length < 6) { setAuthError("Le mot de passe doit contenir au moins 6 caractères."); return; }
+    setAuthLoading(true);
+    setAuthError("");
+
+    try {
+      // 1. Create Supabase Auth user
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error("Erreur lors de la création du compte.");
+
+      const uid = data.user.id;
+      const slug = generateSlug(formData.name.trim()) + "-" + uid.substring(0, 6);
+
+      // 2. Create EMPTY profile in DB (linked to auth user)
+      const { error: profileError } = await supabase.from("user_profiles").insert({
+        id: uid,
+        name: formData.name.trim(),
+        business: acctType === "pro" ? formData.business.trim() || formData.company.trim() : "",
+        phone: "",
+        email: formData.email.trim(),
+        has_onboarded: true,
+        booking_slug: slug,
+      });
+
+      if (profileError) throw profileError;
+
+      // 3. Load profile into store + set session
+      await completeAuth(uid, acctType);
+
+      // 4. Navigate to correct dashboard
+      router.replace(acctType === "client" ? "/client-home" : "/");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Une erreur est survenue.";
+      // Translate common Supabase errors
+      if (msg.includes("already registered")) setAuthError("Cet email est déjà utilisé. Essayez de vous connecter.");
+      else if (msg.includes("valid email")) setAuthError("Veuillez entrer une adresse email valide.");
+      else if (msg.includes("password")) setAuthError("Le mot de passe doit contenir au moins 6 caractères.");
+      else setAuthError(msg);
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
-  function handleLogin() {
-    if (!formData.email.trim()) return;
-    // Clear any stale demo flags
-    localStorage.removeItem("demo-mode");
-    updateUser({
-      name: formData.name.trim() || "Mon Activité",
-      email: formData.email.trim(),
-      accountType: acctType,
-    });
-    completeOnboarding();
-    router.replace(acctType === "client" ? "/client-home" : "/");
-  }
+  // ── Real Supabase Auth Login ──────────────────────────
+  async function handleLogin() {
+    if (!formData.email.trim() || !formData.password.trim()) return;
+    setAuthLoading(true);
+    setAuthError("");
 
-  function skip() {
-    updateUser({ name: "Mon Activité", business: "" });
-    completeOnboarding();
-    router.replace("/");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error("Erreur de connexion.");
+
+      await completeAuth(data.user.id, acctType);
+      router.replace(acctType === "client" ? "/client-home" : "/");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Identifiants incorrects.";
+      if (msg.includes("Invalid login")) setAuthError("Email ou mot de passe incorrect.");
+      else setAuthError(msg);
+    } finally {
+      setAuthLoading(false);
+    }
   }
 
   return (
@@ -80,7 +130,6 @@ export default function OnboardingPage() {
             <div className="flex justify-end px-6 pt-4">
               <button onClick={() => setPhase("landing")} className="text-[13px] text-accent font-bold">Passer</button>
             </div>
-
             <div className="flex-1 flex flex-col items-center justify-center px-8">
               <AnimatePresence mode="wait">
                 <motion.div key={slide} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
@@ -94,7 +143,6 @@ export default function OnboardingPage() {
                 </motion.div>
               </AnimatePresence>
             </div>
-
             <div className="px-8 pb-8">
               <div className="flex items-center justify-center gap-2 mb-5">
                 {SLIDES.map((_, i) => (
@@ -102,7 +150,6 @@ export default function OnboardingPage() {
                     animate={{ width: i === slide ? 24 : 6 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} />
                 ))}
               </div>
-              <p className="text-[10px] text-muted text-center font-bold uppercase tracking-wider mb-4">Étape {slide + 1} sur {SLIDES.length}</p>
               <div className="flex gap-3">
                 {slide > 0 && (
                   <motion.button whileTap={{ scale: 0.95 }} onClick={prevSlide}
@@ -119,31 +166,22 @@ export default function OnboardingPage() {
           </motion.div>
         )}
 
-        {/* ═══ LANDING (auth choice) — vertically centered ═══ */}
+        {/* ═══ LANDING ═══ */}
         {phase === "landing" && (
           <motion.div key="landing" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="flex-1 flex flex-col px-8">
-
-            {/* Admin access — top right crown icon */}
             <div className="flex justify-end pt-4">
               <motion.button whileTap={{ scale: 0.85 }} onClick={() => router.push("/admin-login")}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-subtle/40 hover:text-muted transition-colors">
                 <Crown size={16} />
               </motion.button>
             </div>
-
-            {/* Spacer top — pushes content to visual center */}
             <div className="flex-1 min-h-[40px]" />
-
-            {/* Centered content block */}
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-5">
-                <div className="w-24 h-24 rounded-full bg-accent-soft flex items-center justify-center shadow-apple-lg">
-                  <Sparkles size={38} className="text-accent" />
-                </div>
+                <div className="w-24 h-24 rounded-full bg-accent-soft flex items-center justify-center shadow-apple-lg"><Sparkles size={38} className="text-accent" /></div>
                 <div className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-success border-2 border-background" />
               </div>
-
               <h1 className="text-[24px] font-bold text-foreground tracking-tight leading-tight">
                 Bonjour, je suis votre<br/><span className="text-accent">assistant professionnel.</span>
               </h1>
@@ -151,23 +189,19 @@ export default function OnboardingPage() {
                 Comment puis-je vous accompagner dans la gestion de votre activité ?
               </p>
             </div>
-
-            {/* Buttons */}
             <div className="w-full mt-7 space-y-2.5">
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase("accountType")}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => { setLoginMode(false); setPhase("accountType"); }}
                 className="w-full bg-accent-gradient text-white py-4.5 rounded-2xl flex flex-col items-center gap-0.5 fab-shadow">
                 <Sparkles size={18} className="text-white/80" />
                 <span className="text-[15px] font-bold">Commencer l&apos;aventure</span>
                 <span className="text-[11px] text-white/60">Créez votre compte gratuit</span>
               </motion.button>
-
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => { setLoginMode(true); setPhase("accountType"); }}
                 className="w-full bg-white py-4 rounded-2xl flex flex-col items-center gap-0.5 shadow-card-premium">
                 <ArrowRight size={18} className="text-foreground" />
                 <span className="text-[14px] font-bold text-foreground">Me reconnecter</span>
                 <span className="text-[11px] text-muted">Accédez à votre espace</span>
               </motion.button>
-
               <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase("demo")}
                 className="w-full bg-border-light py-4 rounded-2xl flex flex-col items-center gap-0.5">
                 <Play size={18} className="text-accent" />
@@ -175,8 +209,6 @@ export default function OnboardingPage() {
                 <span className="text-[11px] text-muted">Explorez sans créer de compte</span>
               </motion.button>
             </div>
-
-            {/* Social proof */}
             <div className="mt-6 flex flex-col items-center">
               <div className="flex -space-x-2">
                 {["#7C3AED", "#3B82F6", "#10B981"].map((c, i) => (
@@ -184,25 +216,17 @@ export default function OnboardingPage() {
                     {["A", "M", "S"][i]}
                   </div>
                 ))}
-                <div className="w-7 h-7 rounded-full bg-accent-soft border-2 border-background flex items-center justify-center text-accent text-[8px] font-bold">+2k</div>
               </div>
               <p className="text-[10px] text-muted mt-1.5 flex items-center gap-1"><Star size={9} className="text-warning" /> 2 000+ professionnels</p>
             </div>
-
-            {/* Footer — flexible bottom */}
             <div className="flex-1 min-h-[40px]" />
             <div className="pb-5 text-center">
-              <p className="text-[9px] text-subtle">© 2024 Lumière Pro</p>
-              <div className="flex items-center justify-center gap-3 mt-1">
-                {["Confidentialité", "Conditions", "Support"].map((l) => (
-                  <span key={l} className="text-[9px] text-muted">{l}</span>
-                ))}
-              </div>
+              <p className="text-[9px] text-subtle">&copy; 2025 Lumière Pro</p>
             </div>
           </motion.div>
         )}
 
-        {/* ═══ DEMO TYPE SELECTION ═══ */}
+        {/* ═══ DEMO ═══ */}
         {phase === "demo" && (
           <motion.div key="demo" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
             className="flex-1 flex flex-col px-8 pt-6">
@@ -210,177 +234,102 @@ export default function OnboardingPage() {
               className="self-start w-9 h-9 rounded-xl bg-border-light flex items-center justify-center mb-6">
               <ArrowLeft size={18} className="text-foreground" />
             </motion.button>
-
             <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-accent-soft flex items-center justify-center mb-5">
-                <Play size={28} className="text-accent" />
-              </div>
+              <div className="w-16 h-16 rounded-2xl bg-accent-soft flex items-center justify-center mb-5"><Play size={28} className="text-accent" /></div>
               <h2 className="text-[24px] font-bold text-foreground tracking-tight text-center">Choisissez votre démo</h2>
               <p className="text-[14px] text-muted mt-2 text-center leading-relaxed max-w-[280px]">
                 Explorez l&apos;application avec des données fictives.
               </p>
-
               <div className="w-full mt-8 space-y-4">
-                <motion.button whileTap={{ scale: 0.98 }} onClick={() => {
-                  // CRITICAL: Set demo-mode BEFORE updateUser so DB write is blocked
-                  localStorage.setItem("demo-mode", "true");
-                  updateUser({ name: "Marie Dupont", business: "Consultante", email: "marie@demo.com", accountType: "pro" });
-                  completeOnboarding();
-                  router.replace("/");
-                }}
+                <motion.button whileTap={{ scale: 0.98 }} onClick={() => { startDemo("pro"); router.replace("/"); }}
                   className="w-full bg-white rounded-2xl p-5 shadow-card-premium text-left flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-accent-soft flex items-center justify-center flex-shrink-0">
-                    <Briefcase size={22} className="text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-[16px] font-bold text-foreground">Démo Professionnel</p>
-                    <p className="text-[12px] text-muted mt-1 leading-relaxed">Dashboard, rendez-vous, clients, factures et stock.</p>
-                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-accent-soft flex items-center justify-center flex-shrink-0"><Briefcase size={22} className="text-accent" /></div>
+                  <div><p className="text-[16px] font-bold text-foreground">Démo Professionnel</p><p className="text-[12px] text-muted mt-1 leading-relaxed">Dashboard, rendez-vous, clients, factures et stock.</p></div>
                 </motion.button>
-
-                <motion.button whileTap={{ scale: 0.98 }} onClick={() => {
-                  // CRITICAL: Set demo-mode BEFORE updateUser so DB write is blocked
-                  localStorage.setItem("demo-mode", "true");
-                  updateUser({ name: "Julien Lefebvre", business: "", email: "julien@demo.com", accountType: "client" });
-                  completeOnboarding();
-                  router.replace("/client-home");
-                }}
+                <motion.button whileTap={{ scale: 0.98 }} onClick={() => { startDemo("client"); router.replace("/client-home"); }}
                   className="w-full bg-white rounded-2xl p-5 shadow-card-premium text-left flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-border-light flex items-center justify-center flex-shrink-0">
-                    <User size={22} className="text-muted" />
-                  </div>
-                  <div>
-                    <p className="text-[16px] font-bold text-foreground">Démo Client</p>
-                    <p className="text-[12px] text-muted mt-1 leading-relaxed">Réservations, fidélité, offres et cartes cadeaux.</p>
-                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-border-light flex items-center justify-center flex-shrink-0"><User size={22} className="text-muted" /></div>
+                  <div><p className="text-[16px] font-bold text-foreground">Démo Client</p><p className="text-[12px] text-muted mt-1 leading-relaxed">Réservations, fidélité, offres et cartes cadeaux.</p></div>
                 </motion.button>
               </div>
             </div>
-
-            <div className="pb-8 text-center">
-              <p className="text-[11px] text-muted">Aucun compte nécessaire. Données fictives.</p>
-            </div>
+            <div className="pb-8 text-center"><p className="text-[11px] text-muted">Aucun compte nécessaire. Session temporaire.</p></div>
           </motion.div>
         )}
 
-        {/* ═══ ACCOUNT TYPE SELECTION ═══ */}
+        {/* ═══ ACCOUNT TYPE ═══ */}
         {phase === "accountType" && (
           <motion.div key="acctType" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
             className="flex-1 flex flex-col px-8 pt-6">
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setLoginMode(false); setPhase("landing"); }}
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setLoginMode(false); setPhase("landing"); setAuthError(""); }}
               className="self-start w-9 h-9 rounded-xl bg-border-light flex items-center justify-center mb-6">
               <ArrowLeft size={18} className="text-foreground" />
             </motion.button>
-
-            <h2 className="text-[24px] font-bold text-foreground tracking-tight">
-              {loginMode ? "Quel type de compte ?" : "Choisissez votre profil"}
-            </h2>
-            <p className="text-[14px] text-muted mt-2 leading-relaxed">
-              {loginMode ? "Sélectionnez votre type de compte pour continuer." : "Comment allez-vous utiliser Lumière Pro ?"}
-            </p>
-
+            <h2 className="text-[24px] font-bold text-foreground tracking-tight">{loginMode ? "Quel type de compte ?" : "Choisissez votre profil"}</h2>
+            <p className="text-[14px] text-muted mt-2 leading-relaxed">{loginMode ? "Sélectionnez votre type de compte." : "Comment allez-vous utiliser Lumière Pro ?"}</p>
             <div className="mt-8 space-y-4">
-              <motion.button whileTap={{ scale: 0.98 }} onClick={() => { setAcctType("pro"); setPhase(loginMode ? "login" : "signup"); }}
+              <motion.button whileTap={{ scale: 0.98 }} onClick={() => { setAcctType("pro"); setPhase(loginMode ? "login" : "signup"); setAuthError(""); }}
                 className="w-full bg-white rounded-2xl p-5 shadow-card-premium text-left flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-accent-soft flex items-center justify-center flex-shrink-0">
-                  <Briefcase size={22} className="text-accent" />
-                </div>
-                <div>
-                  <p className="text-[16px] font-bold text-foreground">Compte professionnel</p>
-                  <p className="text-[12px] text-muted mt-1 leading-relaxed">Gérez vos clients, rendez-vous, factures et stock.</p>
-                </div>
+                <div className="w-12 h-12 rounded-xl bg-accent-soft flex items-center justify-center flex-shrink-0"><Briefcase size={22} className="text-accent" /></div>
+                <div><p className="text-[16px] font-bold text-foreground">Compte professionnel</p><p className="text-[12px] text-muted mt-1 leading-relaxed">Gérez vos clients, rendez-vous, factures et stock.</p></div>
               </motion.button>
-
-              <motion.button whileTap={{ scale: 0.98 }} onClick={() => { setAcctType("client"); setPhase(loginMode ? "login" : "signup"); }}
+              <motion.button whileTap={{ scale: 0.98 }} onClick={() => { setAcctType("client"); setPhase(loginMode ? "login" : "signup"); setAuthError(""); }}
                 className="w-full bg-white rounded-2xl p-5 shadow-card-premium text-left flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-border-light flex items-center justify-center flex-shrink-0">
-                  <User size={22} className="text-muted" />
-                </div>
-                <div>
-                  <p className="text-[16px] font-bold text-foreground">Compte client</p>
-                  <p className="text-[12px] text-muted mt-1 leading-relaxed">Réservez en ligne et suivez vos rendez-vous.</p>
-                </div>
+                <div className="w-12 h-12 rounded-xl bg-border-light flex items-center justify-center flex-shrink-0"><User size={22} className="text-muted" /></div>
+                <div><p className="text-[16px] font-bold text-foreground">Compte client</p><p className="text-[12px] text-muted mt-1 leading-relaxed">Réservez en ligne et suivez vos rendez-vous.</p></div>
               </motion.button>
             </div>
           </motion.div>
         )}
 
-        {/* ═══ SIGNUP ═══ */}
+        {/* ═══ SIGNUP (with Supabase Auth) ═══ */}
         {phase === "signup" && (
           <motion.div key="signup" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
             className="flex-1 flex flex-col overflow-y-auto">
             <div className="px-8 pt-6 pb-8">
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPhase("accountType")}
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setPhase("accountType"); setAuthError(""); }}
                 className="w-9 h-9 rounded-xl bg-border-light flex items-center justify-center mb-6">
                 <ArrowLeft size={18} className="text-foreground" />
               </motion.button>
-
               <h2 className="text-[24px] font-bold text-foreground tracking-tight">
                 {acctType === "pro" ? "Créer votre espace pro" : "Créer votre compte"}
               </h2>
               <p className="text-[14px] text-muted mt-2">Commencez gratuitement en quelques secondes.</p>
-
               <div className="mt-6 space-y-4">
-                <div>
-                  <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Nom complet</label>
-                  <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                    <User size={16} className="text-subtle" />
+                <div><label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Nom complet</label>
+                  <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3"><User size={16} className="text-subtle" />
                     <input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Marie Dupont" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
-                  </div>
-                </div>
-
+                      placeholder="Marie Dupont" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" /></div></div>
                 {acctType === "pro" && (
-                  <>
-                    <div>
-                      <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Activité</label>
-                      <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                        <Briefcase size={16} className="text-subtle" />
-                        <input value={formData.business} onChange={(e) => setFormData({ ...formData, business: e.target.value })}
-                          placeholder="Consultante, coiffeuse..." className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Entreprise <span className="text-subtle font-normal">(optionnel)</span></label>
-                      <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                        <Briefcase size={16} className="text-subtle" />
-                        <input value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                          placeholder="Nom de l'entreprise" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
-                      </div>
-                    </div>
-                  </>
+                  <div><label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Activité</label>
+                    <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3"><Briefcase size={16} className="text-subtle" />
+                      <input value={formData.business} onChange={(e) => setFormData({ ...formData, business: e.target.value })}
+                        placeholder="Consultante, coiffeuse..." className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" /></div></div>
+                )}
+                <div><label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Adresse e-mail</label>
+                  <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3"><Mail size={16} className="text-subtle" />
+                    <input value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setAuthError(""); }}
+                      type="email" placeholder="nom@exemple.com" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" /></div></div>
+                <div><label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Mot de passe</label>
+                  <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3"><Lock size={16} className="text-subtle" />
+                    <input value={formData.password} onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setAuthError(""); }}
+                      type={showPw ? "text" : "password"} placeholder="6 caractères minimum" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
+                    <button onClick={() => setShowPw(!showPw)}>{showPw ? <EyeOff size={16} className="text-subtle" /> : <Eye size={16} className="text-subtle" />}</button></div></div>
+
+                {/* Auth error */}
+                {authError && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                    className="bg-danger-soft rounded-xl px-4 py-3 text-[12px] text-danger font-semibold">{authError}</motion.div>
                 )}
 
-                <div>
-                  <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Adresse e-mail</label>
-                  <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                    <Mail size={16} className="text-subtle" />
-                    <input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      type="email" placeholder="nom@exemple.com" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Mot de passe</label>
-                  <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                    <Lock size={16} className="text-subtle" />
-                    <input value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      type={showPw ? "text" : "password"} placeholder="••••••••" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
-                    <button onClick={() => setShowPw(!showPw)}>{showPw ? <EyeOff size={16} className="text-subtle" /> : <Eye size={16} className="text-subtle" />}</button>
-                  </div>
-                </div>
-
-                <motion.button whileTap={{ scale: 0.97 }} onClick={handleSignup}
+                <motion.button whileTap={{ scale: 0.97 }} onClick={handleSignup} disabled={authLoading}
                   className="w-full bg-accent-gradient text-white py-4 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2 fab-shadow mt-2">
-                  Créer mon compte <ArrowRight size={18} />
+                  {authLoading ? <Loader2 size={18} className="animate-spin" /> : <>Créer mon compte <ArrowRight size={18} /></>}
                 </motion.button>
-
                 <p className="text-[12px] text-muted text-center mt-3">
-                  Déjà un compte ? <button onClick={() => setPhase("login")} className="text-accent font-bold">Se connecter</button>
+                  Déjà un compte ? <button onClick={() => { setPhase("login"); setAuthError(""); }} className="text-accent font-bold">Se connecter</button>
                 </p>
               </div>
-
-              {/* Trust badges */}
               <div className="flex items-center justify-center gap-4 mt-8">
                 <div className="flex items-center gap-1"><Shield size={12} className="text-muted" /><span className="text-[10px] text-muted">RGPD</span></div>
                 <div className="flex items-center gap-1"><CheckCircle2 size={12} className="text-muted" /><span className="text-[10px] text-muted">SSL</span></div>
@@ -389,73 +338,50 @@ export default function OnboardingPage() {
           </motion.div>
         )}
 
-        {/* ═══ LOGIN ═══ */}
+        {/* ═══ LOGIN (with Supabase Auth) ═══ */}
         {phase === "login" && (
           <motion.div key="login" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
             className="flex-1 flex flex-col overflow-y-auto">
             <div className="px-8 pt-6 pb-8">
               <div className="flex items-center justify-between mb-6">
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setPhase("accountType")}
-                  className="w-9 h-9 rounded-xl bg-border-light flex items-center justify-center">
-                  <ArrowLeft size={18} className="text-foreground" />
-                </motion.button>
-                <button onClick={() => { setLoginMode(false); setPhase("accountType"); }} className="text-[13px] text-accent font-bold">S&apos;inscrire</button>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setPhase("accountType"); setAuthError(""); }}
+                  className="w-9 h-9 rounded-xl bg-border-light flex items-center justify-center"><ArrowLeft size={18} className="text-foreground" /></motion.button>
+                <button onClick={() => { setLoginMode(false); setPhase("accountType"); setAuthError(""); }} className="text-[13px] text-accent font-bold">S&apos;inscrire</button>
               </div>
-
               <div className="bg-white rounded-[28px] p-6 shadow-card-premium">
-                <h2 className="text-[24px] font-bold text-foreground tracking-tight text-center">Gérez votre activité simplement</h2>
-                <p className="text-[13px] text-muted text-center mt-2 leading-relaxed">Accédez à votre espace et pilotez votre activité.</p>
-
-                {/* Account type indicator */}
-                <div className="flex items-center justify-center gap-2 mb-4">
+                <h2 className="text-[24px] font-bold text-foreground tracking-tight text-center">Connexion</h2>
+                <p className="text-[13px] text-muted text-center mt-2 leading-relaxed">Accédez à votre espace.</p>
+                <div className="flex items-center justify-center gap-2 mt-3 mb-4">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${acctType === "pro" ? "bg-accent-soft" : "bg-border-light"}`}>
                     {acctType === "pro" ? <Briefcase size={14} className="text-accent" /> : <User size={14} className="text-muted" />}
                   </div>
-                  <span className="text-[12px] font-bold text-muted">
-                    {acctType === "pro" ? "Compte professionnel" : "Compte client"}
-                  </span>
+                  <span className="text-[12px] font-bold text-muted">{acctType === "pro" ? "Professionnel" : "Client"}</span>
                 </div>
-
                 <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Adresse e-mail</label>
-                    <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                      <Mail size={16} className="text-subtle" />
-                      <input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        type="email" placeholder="nom@exemple.com" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[11px] text-muted font-bold uppercase tracking-wider">Mot de passe</label>
-                      <button className="text-[11px] text-accent font-bold">Oublié ?</button>
-                    </div>
-                    <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3">
-                      <Lock size={16} className="text-subtle" />
-                      <input value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  <div><label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Email</label>
+                    <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3"><Mail size={16} className="text-subtle" />
+                      <input value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setAuthError(""); }}
+                        type="email" placeholder="nom@exemple.com" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" /></div></div>
+                  <div><label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Mot de passe</label>
+                    <div className="bg-border-light rounded-2xl px-4 py-3.5 flex items-center gap-3"><Lock size={16} className="text-subtle" />
+                      <input value={formData.password} onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setAuthError(""); }}
                         type={showPw ? "text" : "password"} placeholder="••••••••" className="flex-1 bg-transparent text-[14px] text-foreground placeholder:text-subtle outline-none" />
-                      <button onClick={() => setShowPw(!showPw)}>{showPw ? <EyeOff size={16} className="text-subtle" /> : <Eye size={16} className="text-subtle" />}</button>
-                    </div>
-                  </div>
+                      <button onClick={() => setShowPw(!showPw)}>{showPw ? <EyeOff size={16} className="text-subtle" /> : <Eye size={16} className="text-subtle" />}</button></div></div>
 
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={handleLogin}
+                  {authError && (
+                    <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                      className="bg-danger-soft rounded-xl px-4 py-3 text-[12px] text-danger font-semibold">{authError}</motion.div>
+                  )}
+
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={handleLogin} disabled={authLoading}
                     className="w-full bg-accent-gradient text-white py-4 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2 fab-shadow">
-                    Se connecter <ArrowRight size={18} />
+                    {authLoading ? <Loader2 size={18} className="animate-spin" /> : <>Se connecter <ArrowRight size={18} /></>}
                   </motion.button>
-
                   <p className="text-[12px] text-muted text-center mt-3">
-                    Nouveau ? <button onClick={() => { setLoginMode(false); setPhase("accountType"); }} className="text-accent font-bold">Créer un compte</button>
+                    Nouveau ? <button onClick={() => { setLoginMode(false); setPhase("accountType"); setAuthError(""); }} className="text-accent font-bold">Créer un compte</button>
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-center justify-center gap-4 mt-6">
-                <div className="flex items-center gap-1"><Shield size={12} className="text-muted" /><span className="text-[10px] text-muted">RGPD</span></div>
-                <div className="flex items-center gap-1"><CheckCircle2 size={12} className="text-muted" /><span className="text-[10px] text-muted">SSL</span></div>
-              </div>
-
-              {/* Admin access moved to crown icon on landing page */}
             </div>
           </motion.div>
         )}
