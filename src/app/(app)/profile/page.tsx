@@ -131,10 +131,9 @@ export default function ProfilePage() {
       { i: "🎫", t: "Promotions", s: "Offres flash, calendrier.", k: "__link__/settings/promotions" },
     ]},
     { title: "Fiscalité & Comptabilité", items: [
-      { i: "💳", t: "Paiements & Facturation", s: "Stripe, TVA, coordonnées.", k: "__link__/settings/payments" },
       { i: "🧾", t: "Comptabilité & Exports", s: "Rapports, envoi comptable.", k: "__link__/settings/accounting" },
       { i: "📋", t: "Taxes & TVA", s: "Déclarations, obligations.", k: "__link__/settings/taxes" },
-      { i: "📦", t: "Stock & Inventaire", s: "Alertes, fournisseurs.", k: "__link__/settings/stock" },
+      { i: "📦", t: "Stock & Inventaire", s: "Alertes, produits.", k: "__link__/settings/stock" },
     ]},
     { title: "Application", items: [
       { i: "🎨", t: "Personnalisation", s: "Couleurs et thème.", k: "__link__/settings/personalization" },

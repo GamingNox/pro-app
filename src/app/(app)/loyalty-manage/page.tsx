@@ -11,7 +11,8 @@ import {
   Users, Sparkles, Star, Edit3, CheckCircle2, X,
 } from "lucide-react";
 import type { LoyaltyTemplate } from "@/lib/types";
-import FeatureGate from "@/components/FeatureGate";
+import { hasAccess } from "@/lib/types";
+import { Lock } from "lucide-react";
 
 const CARD_COLORS = ["#007AFF", "#1D1D1F", "#7C3AED", "#10B981", "#DC2626", "#F59E0B"];
 const EMOJIS = ["💎", "⭐", "🎁", "💅", "✨", "🌟", "💫", "🏆"];
@@ -24,7 +25,7 @@ function generateCode(): string {
 }
 
 export default function LoyaltyManagePage() {
-  const { clients, loyaltyTemplates, addLoyaltyTemplate, deleteLoyaltyTemplate, loyaltyCards, addLoyaltyCard, updateLoyaltyCard, deleteLoyaltyCard, getClient, appointments } = useApp();
+  const { user, clients, loyaltyTemplates, addLoyaltyTemplate, deleteLoyaltyTemplate, loyaltyCards, addLoyaltyCard, updateLoyaltyCard, deleteLoyaltyCard, getClient, appointments } = useApp();
 
   const [showNewTemplate, setShowNewTemplate] = useState(false);
   const [showNewCard, setShowNewCard] = useState(false);
@@ -74,8 +75,35 @@ export default function LoyaltyManagePage() {
   const viewedTemplate = viewedCard ? loyaltyTemplates.find((t) => t.id === viewedCard.templateId) : null;
   const viewedClient = viewedCard ? getClient(viewedCard.clientId) : null;
 
+  const plan = user?.plan || "essentiel";
+  const canAccess = hasAccess("loyalty_system", plan);
+
+  if (!canAccess) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden bg-background">
+        <div className="flex-shrink-0 px-6 pt-5 pb-3 flex items-center gap-3">
+          <Link href="/profile"><motion.div whileTap={{ scale: 0.9 }} className="w-9 h-9 rounded-xl bg-white shadow-sm-apple flex items-center justify-center"><ArrowLeft size={17} /></motion.div></Link>
+          <div className="flex-1"><h1 className="text-[22px] font-bold text-foreground tracking-tight">Fidélité</h1></div>
+        </div>
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-32">
+          <div className="bg-white rounded-2xl p-8 shadow-card-premium text-center mt-4">
+            <div className="w-16 h-16 rounded-2xl bg-accent-soft flex items-center justify-center mx-auto mb-4"><Lock size={28} className="text-accent" /></div>
+            <h3 className="text-[20px] font-bold text-foreground">Fonctionnalité Pro</h3>
+            <p className="text-[13px] text-muted mt-2 leading-relaxed max-w-[260px] mx-auto">
+              Le programme de fidélité est disponible avec le plan Pro à 9,99€/mois.
+            </p>
+            <Link href="/subscription">
+              <motion.button whileTap={{ scale: 0.97 }} className="mt-5 bg-accent text-white py-3.5 rounded-2xl text-[14px] font-bold w-full fab-shadow">
+                Passer au plan Pro
+              </motion.button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <FeatureGate feature="loyalty_system">
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
       <div className="flex-shrink-0 px-6 pt-5 pb-3 flex items-center gap-3">
         <Link href="/profile"><motion.div whileTap={{ scale: 0.9 }} className="w-9 h-9 rounded-xl bg-white shadow-sm-apple flex items-center justify-center"><ArrowLeft size={17} /></motion.div></Link>
@@ -341,6 +369,5 @@ export default function LoyaltyManagePage() {
         })()}
       </Modal>
     </div>
-    </FeatureGate>
   );
 }
