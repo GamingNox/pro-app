@@ -11,6 +11,7 @@ import {
   Users, Sparkles, Star, Edit3, CheckCircle2, X,
 } from "lucide-react";
 import type { LoyaltyTemplate } from "@/lib/types";
+import FeatureGate from "@/components/FeatureGate";
 
 const CARD_COLORS = ["#007AFF", "#1D1D1F", "#7C3AED", "#10B981", "#DC2626", "#F59E0B"];
 const EMOJIS = ["💎", "⭐", "🎁", "💅", "✨", "🌟", "💫", "🏆"];
@@ -74,6 +75,7 @@ export default function LoyaltyManagePage() {
   const viewedClient = viewedCard ? getClient(viewedCard.clientId) : null;
 
   return (
+    <FeatureGate feature="loyalty_system">
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
       <div className="flex-shrink-0 px-6 pt-5 pb-3 flex items-center gap-3">
         <Link href="/profile"><motion.div whileTap={{ scale: 0.9 }} className="w-9 h-9 rounded-xl bg-white shadow-sm-apple flex items-center justify-center"><ArrowLeft size={17} /></motion.div></Link>
@@ -339,5 +341,6 @@ export default function LoyaltyManagePage() {
         })()}
       </Modal>
     </div>
+    </FeatureGate>
   );
 }

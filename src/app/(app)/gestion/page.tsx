@@ -12,6 +12,7 @@ import {
   FileText, AlertTriangle, ChevronRight, Settings, Save,
 } from "lucide-react";
 import type { InvoiceItem } from "@/lib/types";
+import FeatureGate from "@/components/FeatureGate";
 import Link from "next/link";
 
 type Tab = "invoices" | "payments" | "stock" | "analytics";
@@ -495,7 +496,7 @@ export default function GestionPage() {
 
           {/* ═══ STOCK TAB ═══ */}
           {tab === "stock" && (
-            <>
+            <FeatureGate feature="stock_management">
               {lowStock.length > 0 && (
                 <div className="bg-warning-soft rounded-2xl p-3.5 flex items-center gap-3 mb-3">
                   <TrendingDown size={16} className="text-warning flex-shrink-0" />
@@ -560,12 +561,12 @@ export default function GestionPage() {
                   ))}
                 </div>
               )}
-            </>
+            </FeatureGate>
           )}
 
           {/* ═══ ANALYTICS TAB ═══ */}
           {tab === "analytics" && (
-            <>
+            <FeatureGate feature="analytics_advanced">
               <div className="bg-white rounded-[22px] p-5 shadow-card-premium mb-4">
                 <p className="text-[13px] font-bold text-foreground mb-4">Revenus · 6 derniers mois</p>
                 <div className="flex items-end gap-[5px] h-[100px] mb-2">
@@ -619,7 +620,7 @@ export default function GestionPage() {
                   );
                 })()}
               </div>
-            </>
+            </FeatureGate>
           )}
 
         </div>

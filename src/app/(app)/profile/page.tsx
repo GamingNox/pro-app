@@ -161,13 +161,15 @@ export default function ProfilePage() {
               className="mt-3 text-white text-[12px] font-bold px-5 py-2 rounded-xl" style={{ backgroundColor: "var(--color-accent)" }}>Modifier</motion.button>
           </div>
 
-          {/* Subscription */}
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowSub(true)} className="w-full bg-accent-gradient rounded-[22px] p-5 shadow-card-premium text-left mb-5">
-            <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider mb-1">Abonnement</p>
-            <h3 className="text-[20px] font-bold text-white">Plan Business Pro</h3>
-            <div className="flex items-end gap-1 mt-1 mb-3"><p className="text-[28px] font-bold text-white leading-none">49€</p><p className="text-[13px] text-white/70 mb-0.5">/mois</p></div>
-            <div className="bg-white rounded-xl py-2.5 text-center"><span className="text-[13px] font-bold" style={{ color: "var(--color-accent)" }}>Gérer</span></div>
-          </motion.button>
+          {/* Subscription — real plan from user profile */}
+          <Link href="/subscription">
+            <motion.div whileTap={{ scale: 0.98 }} className="w-full bg-accent-gradient rounded-[22px] p-5 shadow-card-premium text-left mb-5">
+              <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider mb-1">Abonnement</p>
+              <h3 className="text-[20px] font-bold text-white">{(() => { const names: Record<string, string> = { essentiel: "Essentiel", croissance: "Croissance", entreprise: "Entreprise" }; return names[user.plan || "essentiel"] || "Essentiel"; })()}</h3>
+              <div className="flex items-end gap-1 mt-1 mb-3"><p className="text-[28px] font-bold text-white leading-none">{(() => { const prices: Record<string, number> = { essentiel: 0, croissance: 49, entreprise: 129 }; return prices[user.plan || "essentiel"] ?? 0; })()}€</p><p className="text-[13px] text-white/70 mb-0.5">/mois</p></div>
+              <div className="bg-white rounded-xl py-2.5 text-center"><span className="text-[13px] font-bold" style={{ color: "var(--color-accent)" }}>Gérer l&apos;abonnement</span></div>
+            </motion.div>
+          </Link>
 
           {/* Stats */}
           <div className="bg-white rounded-[22px] shadow-card-premium overflow-hidden mb-5">
@@ -235,11 +237,6 @@ export default function ProfilePage() {
       </Modal>
 
       {/* Subscription */}
-      <Modal open={showSub} onClose={() => setShowSub(false)} title="Abonnement" size="large">
-        <div><div className="bg-accent-gradient rounded-2xl p-5 text-center mb-5"><Crown size={32} className="text-white/80 mx-auto mb-2" /><h3 className="text-[22px] font-bold text-white">Plan Business Pro</h3><p className="text-[14px] text-white/70 mt-1">49 €/mois</p></div>
-          <div className="space-y-2 mb-4">{["Clients illimités","RDV illimités","Dashboard complet","Stock avancé","Finances","Réservation","Support"].map((f,i) => (<div key={i} className="flex items-center gap-3 bg-success-soft rounded-xl px-4 py-3"><CheckCircle2 size={16} className="text-success" /><span className="text-[13px] font-semibold text-foreground">{f}</span></div>))}</div></div>
-      </Modal>
-
       {/* INFO */}
       <Modal open={v==="info"} onClose={() => setV(null)} title="Informations" size="large">
         <div className="space-y-4">

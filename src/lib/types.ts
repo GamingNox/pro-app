@@ -94,6 +94,66 @@ export interface LoyaltyCard {
   createdAt: string;
 }
 
+// ── Subscription ────────────────────────────────────────
+export type PlanTier = "essentiel" | "croissance" | "entreprise";
+
+export type Feature =
+  | "clients_unlimited" | "appointments_unlimited" | "dashboard_full"
+  | "stock_management" | "finance_tracking" | "analytics_advanced"
+  | "loyalty_system" | "booking_page" | "priority_support"
+  | "custom_branding" | "api_access" | "pdf_reports"
+  | "multi_staff" | "auto_reminders" | "sla_99";
+
+export const PLAN_LIMITS: Record<PlanTier, { maxClients: number; maxAppointments: number }> = {
+  essentiel: { maxClients: 15, maxAppointments: 30 },
+  croissance: { maxClients: Infinity, maxAppointments: Infinity },
+  entreprise: { maxClients: Infinity, maxAppointments: Infinity },
+};
+
+export const PLAN_FEATURES: Record<PlanTier, Feature[]> = {
+  essentiel: [
+    "dashboard_full", "booking_page",
+  ],
+  croissance: [
+    "dashboard_full", "booking_page",
+    "clients_unlimited", "appointments_unlimited",
+    "stock_management", "finance_tracking",
+    "loyalty_system", "auto_reminders", "pdf_reports",
+  ],
+  entreprise: [
+    "dashboard_full", "booking_page",
+    "clients_unlimited", "appointments_unlimited",
+    "stock_management", "finance_tracking",
+    "loyalty_system", "auto_reminders", "pdf_reports",
+    "analytics_advanced", "priority_support",
+    "custom_branding", "api_access", "multi_staff", "sla_99",
+  ],
+};
+
+export const PLAN_PRICES: Record<PlanTier, number> = {
+  essentiel: 0,
+  croissance: 49,
+  entreprise: 129,
+};
+
+export const PLAN_NAMES: Record<PlanTier, string> = {
+  essentiel: "Essentiel",
+  croissance: "Croissance",
+  entreprise: "Entreprise",
+};
+
+/** Check if a plan has access to a specific feature */
+export function hasAccess(feature: Feature, plan: PlanTier): boolean {
+  return PLAN_FEATURES[plan].includes(feature);
+}
+
+/** Get the minimum plan required for a feature */
+export function requiredPlan(feature: Feature): PlanTier {
+  if (PLAN_FEATURES.essentiel.includes(feature)) return "essentiel";
+  if (PLAN_FEATURES.croissance.includes(feature)) return "croissance";
+  return "entreprise";
+}
+
 // ── User ─────────────────────────────────────────────────
 export type AccountType = "pro" | "client";
 
@@ -104,4 +164,5 @@ export interface UserProfile {
   email: string;
   bookingSlug?: string;
   accountType?: AccountType;
+  plan?: PlanTier;
 }

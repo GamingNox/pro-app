@@ -235,6 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               email: profile.email || session.user.email || "",
               bookingSlug: profile.booking_slug || undefined,
               accountType: savedAcctType || undefined,
+              plan: (profile.subscription_plan as import("./types").PlanTier) || "essentiel",
             });
             setHasOnboarded(true);
             await loadUserData(uid);
@@ -329,6 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         email: profile.email || "",
         bookingSlug: profile.booking_slug || undefined,
         accountType: acctType,
+        plan: (profile.subscription_plan as import("./types").PlanTier) || "essentiel",
       });
     }
 
