@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Palette } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import SettingsPage, { SettingsSection, SettingsToggle, SettingsRow } from "@/components/SettingsPage";
 
 const COLORS = [
@@ -34,7 +34,6 @@ export default function SettingsPersonalizationPage() {
       category="Application"
       title="Personnalisation"
       description="Adaptez l'apparence et le comportement de l'application à votre image."
-      icon={<div className="w-9 h-9 rounded-full bg-accent-soft flex items-center justify-center"><Palette size={16} className="text-accent" /></div>}
     >
       {/* Color */}
       <SettingsSection title="Couleur d'accent" description="Appliquée instantanément sur toute l'application.">

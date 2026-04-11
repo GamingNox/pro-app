@@ -51,20 +51,20 @@ export default function SettingsAnalyticsPage() {
         <div className="bg-white rounded-2xl p-5 shadow-card-premium">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center"><BarChart3 size={18} className="text-accent" /></div>
-            <span className="text-[11px] font-bold text-success">+12.4% ↗</span>
           </div>
           <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Revenus Mensuels</p>
           <p className="text-[28px] font-bold text-foreground leading-none mt-1">{monthRev.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</p>
-          <div className="w-full h-1.5 bg-border-light rounded-full mt-3 overflow-hidden">
-            <motion.div className="h-full bg-accent rounded-full" initial={{ width: "0%" }} animate={{ width: "65%" }} transition={{ duration: 0.8 }} />
-          </div>
+          {monthRev > 0 && (
+            <div className="w-full h-1.5 bg-border-light rounded-full mt-3 overflow-hidden">
+              <motion.div className="h-full bg-accent rounded-full" initial={{ width: "0%" }} animate={{ width: `${Math.min(100, Math.round((monthRev / Math.max(monthRev * 1.5, 1)) * 100))}%` }} transition={{ duration: 0.8 }} />
+            </div>
+          )}
         </div>
 
         {/* Occupation */}
         <div className="bg-white rounded-2xl p-5 shadow-card-premium">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center"><TrendingUp size={18} className="text-accent" /></div>
-            <span className="text-[11px] font-bold text-success">+5.2% ↗</span>
           </div>
           <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Taux d&apos;occupation</p>
           <p className="text-[28px] font-bold text-foreground leading-none mt-1">{occRate}%</p>
@@ -79,7 +79,7 @@ export default function SettingsAnalyticsPage() {
         <div className="bg-white rounded-2xl p-5 shadow-card-premium">
           <div className="flex items-center justify-between mb-2">
             <div className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center"><Users size={18} className="text-accent" /></div>
-            <span className="text-[11px] font-bold text-danger">-2.1% ↘</span>
+            <span className="text-[11px] font-bold text-muted">{newThisMonth > 0 ? `+${newThisMonth}` : "—"}</span>
           </div>
           <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Nouveaux Clients</p>
           <p className="text-[28px] font-bold text-foreground leading-none mt-1">{newThisMonth}</p>

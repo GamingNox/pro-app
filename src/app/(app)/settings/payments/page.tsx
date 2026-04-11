@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useApp } from "@/lib/store";
 import { motion } from "framer-motion";
-import { CreditCard, Banknote, Building2, CheckCircle2, Shield, ExternalLink, Info } from "lucide-react";
+import { CreditCard, Banknote, Building2, CheckCircle2, ExternalLink, Info } from "lucide-react";
 import SettingsPage, { SettingsSection, SettingsToggle, SettingsRow } from "@/components/SettingsPage";
 
 export default function SettingsPaymentsPage() {
@@ -40,13 +40,6 @@ export default function SettingsPaymentsPage() {
           <button className="text-[12px] text-accent font-bold flex items-center gap-1"><ExternalLink size={12} /> Détails techniques</button>
         </div>
       </SettingsSection>
-
-      {/* Security badge */}
-      <div className="bg-foreground rounded-2xl p-5 text-center text-white mb-5">
-        <Shield size={24} className="text-white/60 mx-auto mb-2" />
-        <p className="text-[14px] font-bold">Sécurité PCI DSS</p>
-        <p className="text-[11px] text-white/60 mt-1 max-w-[260px] mx-auto leading-relaxed">Vos données bancaires sont cryptées selon les normes bancaires les plus strictes.</p>
-      </div>
 
       {/* TVA */}
       <SettingsSection title="Configuration de la TVA">

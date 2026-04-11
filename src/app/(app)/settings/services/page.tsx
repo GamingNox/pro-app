@@ -54,12 +54,12 @@ export default function SettingsServicesPage() {
       </div>
 
       {/* Premium upsell */}
-      <div className="bg-foreground rounded-2xl p-5 text-white text-center mb-5">
-        <Sparkles size={22} className="text-white/60 mx-auto mb-2" />
+      <div className="bg-accent-gradient rounded-2xl p-5 text-white text-center mb-5">
+        <Sparkles size={22} className="text-white/80 mx-auto mb-2" />
         <p className="text-[15px] font-bold">Boostez votre visibilité avec le pack Premium</p>
-        <p className="text-[11px] text-white/60 mt-1 leading-relaxed">Indexation prioritaire et badges de certification pour rassurer vos clients.</p>
+        <p className="text-[11px] text-white/70 mt-1 leading-relaxed">Indexation prioritaire et badges de certification pour rassurer vos clients.</p>
         <motion.button whileTap={{ scale: 0.97 }}
-          className="mt-4 bg-white text-foreground py-2.5 rounded-xl text-[12px] font-bold w-full">
+          className="mt-4 bg-white text-accent py-2.5 rounded-xl text-[12px] font-bold w-full">
           Découvrir l&apos;offre
         </motion.button>
       </div>

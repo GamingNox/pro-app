@@ -1,8 +1,7 @@
 "use client";
 
 import { useApp } from "@/lib/store";
-import { motion } from "framer-motion";
-import { Package, AlertTriangle, Search, Zap } from "lucide-react";
+import { Package } from "lucide-react";
 import SettingsPage, { SettingsSection, SettingsToggle, SettingsRow } from "@/components/SettingsPage";
 
 export default function SettingsStockPage() {
@@ -28,21 +27,6 @@ export default function SettingsStockPage() {
           </div>
         </div>
       </SettingsSection>
-
-      {/* AI optimization */}
-      <div className="bg-accent-gradient rounded-2xl p-5 text-white mb-5">
-        <div className="flex items-start gap-3">
-          <Zap size={20} className="text-white/80 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[15px] font-bold">Optimisation IA</p>
-            <p className="text-[12px] text-white/70 mt-1 leading-relaxed">Prédiction intelligente des besoins basée sur vos cycles saisonniers.</p>
-          </div>
-        </div>
-        <motion.button whileTap={{ scale: 0.97 }}
-          className="mt-4 bg-white text-accent py-2.5 rounded-xl text-[13px] font-bold w-full">
-          Activer le module
-        </motion.button>
-      </div>
 
       {/* Alerts */}
       <SettingsSection title="Alertes">

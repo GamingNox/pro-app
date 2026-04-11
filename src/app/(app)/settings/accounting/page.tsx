@@ -28,9 +28,9 @@ export default function SettingsAccountingPage() {
       <SettingsSection title="Rapports Prêts" description="Mise à jour : aujourd'hui">
         <div className="space-y-4">
           {[
-            { icon: BarChart3, title: "Monthly Revenue", desc: `Synthèse complète des revenus générés pour ${new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}.`, size: "4.2 MB" },
-            { icon: FileText, title: "Tax Estimates", desc: "Calcul prévisionnel des charges sociales et fiscales trimestrielles.", size: "1.8 MB" },
-            { icon: Download, title: "Expense Reports", desc: "Inventaire détaillé des frais de fonctionnement et justificatifs numérisés.", size: "12.5 MB" },
+            { icon: BarChart3, title: "Revenus mensuels", desc: `Synthèse complète des revenus générés pour ${new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}.`, size: "4.2 MB" },
+            { icon: FileText, title: "Estimations fiscales", desc: "Calcul prévisionnel des charges sociales et fiscales trimestrielles.", size: "1.8 MB" },
+            { icon: Download, title: "Rapport de dépenses", desc: "Inventaire détaillé des frais de fonctionnement et justificatifs numérisés.", size: "12.5 MB" },
           ].map((r) => {
             const Icon = r.icon;
             return (
