@@ -11,6 +11,7 @@ import {
   FileText, AlertTriangle, Lightbulb, Send, RefreshCw,
   Users, X, TrendingUp, Package, BookOpen,
 } from "lucide-react";
+import { staggerItem } from "@/lib/motion";
 
 type RevPeriod = "jour" | "semaine" | "mois";
 
