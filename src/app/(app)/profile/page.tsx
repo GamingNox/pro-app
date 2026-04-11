@@ -110,35 +110,35 @@ export default function ProfilePage() {
   }
   function flash() { setSaved(true); setTimeout(() => setSaved(false), 1500); }
 
-  // Settings categories with sub-items
-  // Settings categories — items with __link__ prefix navigate to full pages
+  // All settings — every item navigates to a full page
   const categories = [
     { title: "Compte & Informations", items: [
       { i: "🏢", t: "Informations entreprise", s: "Identité, contact, réseaux.", k: "__link__/settings/info" },
-      { i: "🌍", t: "Visibilité publique", s: "Page en ligne.", k: "visibility", p: true },
+      { i: "🌍", t: "Profil public", s: "Visibilité, avis, conversion.", k: "__link__/settings/visibility" },
     ]},
-    { title: "Activité", items: [
+    { title: "Services & Catalogue", items: [
+      { i: "🛎️", t: "Gestion des services", s: "Tarifs, durées, activation.", k: "__link__/settings/services" },
       { i: "📊", t: "Statistiques & Performance", s: "KPIs, tendances et insights.", k: "__link__/settings/analytics" },
-      { i: "💬", t: "Messages automatisés", s: "Rappels et confirmations.", k: "__link__/settings/messages" },
     ]},
     { title: "Réservations", items: [
       { i: "📅", t: "Disponibilités & Horaires", s: "Créneaux, congés, règles.", k: "__link__/settings/availability" },
       { i: "🔗", t: "Lien de réservation", s: "URL, QR code, intégration.", k: "__link__/settings/booking-link" },
+      { i: "💬", t: "Messages automatisés", s: "Rappels et confirmations.", k: "__link__/settings/messages" },
     ]},
     { title: "Clients & Fidélisation", items: [
-      { i: "👥", t: "Gestion clients", s: "Badges et acomptes.", k: "clients" },
-      { i: "💎", t: "Programme fidélité", s: "Cartes et récompenses.", k: "__link__/loyalty-manage", p: true },
-      { i: "🎁", t: "Parrainage", s: "Code, récompenses, suivi.", k: "referral" },
-      { i: "🎫", t: "Avantages clients", s: "Codes promo, cartes cadeaux.", k: "advantages" },
+      { i: "💎", t: "Programme fidélité", s: "Cartes et récompenses.", k: "__link__/loyalty-manage" },
+      { i: "🎁", t: "Parrainage", s: "Code, récompenses, suivi.", k: "__link__/settings/referral" },
+      { i: "🎫", t: "Promotions", s: "Offres flash, calendrier.", k: "__link__/settings/promotions" },
     ]},
-    { title: "Paiements & Comptabilité", items: [
+    { title: "Fiscalité & Comptabilité", items: [
       { i: "💳", t: "Paiements & Facturation", s: "Stripe, TVA, coordonnées.", k: "__link__/settings/payments" },
-      { i: "🧾", t: "Comptabilité", s: "TVA, factures, export.", k: "accounting" },
-      { i: "📦", t: "Stock", s: "Alertes, fournisseurs.", k: "stock" },
+      { i: "🧾", t: "Comptabilité & Exports", s: "Rapports, envoi comptable.", k: "__link__/settings/accounting" },
+      { i: "📋", t: "Taxes & TVA", s: "Déclarations, obligations.", k: "__link__/settings/taxes" },
+      { i: "📦", t: "Stock & Inventaire", s: "Alertes, fournisseurs.", k: "__link__/settings/stock" },
     ]},
     { title: "Application", items: [
       { i: "🎨", t: "Personnalisation", s: "Couleurs et thème.", k: "__link__/settings/personalization" },
-      { i: "⚙️", t: "Préférences", s: "Notifications, données.", k: "appSettings" },
+      { i: "⚙️", t: "Préférences", s: "Notifications, données.", k: "__link__/settings/preferences" },
       { i: "📘", t: "Guide", s: "Découvrir l'application.", k: "__link__/guide" },
     ]},
   ];
@@ -189,7 +189,7 @@ export default function ProfilePage() {
                   const inner = (<>
                     <div className="w-9 h-9 rounded-xl bg-border-light flex items-center justify-center flex-shrink-0 text-[16px]">{s.i}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5"><p className="text-[13px] font-bold text-foreground">{s.t}</p>{s.p && <span className="text-[8px] font-bold text-accent bg-accent-soft px-1.5 py-0.5 rounded">PRO</span>}</div>
+                      <div className="flex items-center gap-1.5"><p className="text-[13px] font-bold text-foreground">{s.t}</p></div>
                       <p className="text-[10px] text-muted mt-0.5">{s.s}</p>
                     </div>
                     <ChevronRight size={15} className="text-border flex-shrink-0" />
