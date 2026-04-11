@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Check, X, Crown, Zap, Shield, Star, Sparkles,
-  TrendingUp, BarChart3, Users, CheckCircle2, ChevronRight,
+  ArrowLeft, Check, X, Crown, Zap, Shield, Sparkles,
+  TrendingUp, CheckCircle2, Gift, Star,
 } from "lucide-react";
-import { PLAN_NAMES, PLAN_PRICES, type PlanTier, type Feature } from "@/lib/types";
+import { PLAN_NAMES, PLAN_PRICES, type PlanTier } from "@/lib/types";
 
 // ── Plan definitions ────────────────────────────────────
 const PLANS: {
@@ -26,12 +26,10 @@ const PLANS: {
       { text: "30 RDV / mois", ok: true },
       { text: "Tableau de bord", ok: true },
       { text: "Page de réservation", ok: true },
-      { text: "Support email 24/7", ok: true },
+      { text: "Support email", ok: true },
       { text: "Gestion de stock", ok: false },
       { text: "Suivi financier", ok: false },
       { text: "Programme fidélité", ok: false },
-      { text: "Rapports PDF", ok: false },
-      { text: "Support prioritaire", ok: false },
     ],
     cta: "Plan actuel",
   },
@@ -41,33 +39,27 @@ const PLANS: {
       { text: "Clients illimités", ok: true },
       { text: "RDV illimités", ok: true },
       { text: "Tableau de bord complet", ok: true },
-      { text: "Page de réservation", ok: true },
-      { text: "Support email 24/7", ok: true },
       { text: "Gestion de stock", ok: true },
       { text: "Suivi financier complet", ok: true },
       { text: "Programme fidélité", ok: true },
-      { text: "Rapports PDF blancs", ok: true },
+      { text: "Rapports PDF", ok: true },
       { text: "Rappels automatiques", ok: true },
-      { text: "Intégrations avancées", ok: false },
-      { text: "Support prioritaire", ok: false },
     ],
-    cta: "Passer à Croissance",
+    cta: "Commencer l'essai gratuit",
   },
   {
-    id: "entreprise", icon: Crown, tagline: "Tout inclus", popular: false,
+    id: "entreprise", icon: Crown, tagline: "Puissance maximale", popular: false,
     features: [
-      { text: "Clients illimités", ok: true },
-      { text: "RDV illimités", ok: true },
-      { text: "Infrastructure dédiée", ok: true },
+      { text: "Tout du plan Pro", ok: true },
       { text: "Intégrations avancées", ok: true },
       { text: "Support prioritaire", ok: true },
-      { text: "SLA garanti 99.9%", ok: true },
-      { text: "Account Manager", ok: true },
       { text: "Branding personnalisé", ok: true },
-      { text: "Accès API", ok: true },
+      { text: "Accès API complet", ok: true },
       { text: "Multi-collaborateurs", ok: true },
+      { text: "Account Manager dédié", ok: true },
+      { text: "SLA garanti 99.9%", ok: true },
     ],
-    cta: "Passer à Entreprise",
+    cta: "Passer au Elite",
   },
 ];
 
@@ -92,7 +84,7 @@ export default function SubscriptionPage() {
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
       {/* Header */}
       <div className="flex-shrink-0 px-6 pt-5 pb-3">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-1">
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => router.back()}
             className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center">
             <ArrowLeft size={17} className="text-foreground" />
@@ -109,67 +101,56 @@ export default function SubscriptionPage() {
       <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         <div className="px-6 pb-32">
 
-          {/* Current plan MRR card */}
-          <div className="bg-white rounded-2xl p-5 shadow-card-premium mb-4">
+          {/* Current plan card */}
+          <div className="bg-white rounded-2xl p-5 shadow-card-premium mb-5">
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-[9px] text-muted font-bold uppercase tracking-wider">Votre abonnement</p>
                 <p className="text-[18px] font-bold text-foreground mt-1">{PLAN_NAMES[currentPlan]}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center">
-                <BarChart3 size={18} className="text-accent" />
+                {currentPlan === "entreprise" ? <Crown size={18} className="text-accent" /> : currentPlan === "croissance" ? <TrendingUp size={18} className="text-accent" /> : <Zap size={18} className="text-accent" />}
               </div>
             </div>
             <div className="flex items-end gap-1.5">
               <span className="text-[32px] font-bold text-foreground leading-none">{PLAN_PRICES[currentPlan]}€</span>
-              <span className="text-[13px] text-muted mb-1">/mois</span>
+              <span className="text-[13px] text-muted mb-1">/ mois</span>
               {currentPlan !== "essentiel" && (
-                <span className="text-[11px] font-bold text-success ml-2 mb-1 flex items-center gap-1"><TrendingUp size={11} /> Actif</span>
+                <span className="text-[11px] font-bold text-success ml-2 mb-1 flex items-center gap-1"><CheckCircle2 size={11} /> Actif</span>
               )}
             </div>
           </div>
 
-          {/* Performance chart */}
-          <div className="bg-white rounded-2xl p-5 shadow-card-premium mb-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] font-bold text-foreground">Performance Mensuelle</h3>
-              <button className="text-muted"><BarChart3 size={16} /></button>
-            </div>
-            <div className="flex items-end gap-[5px] h-[80px]">
-              {[35, 50, 40, 65, 55, 75].map((h, i) => (
-                <motion.div key={i} className={`flex-1 rounded-[4px] ${i === 5 ? "bg-accent" : "bg-accent/15"}`}
-                  initial={{ height: "10%" }} animate={{ height: `${h}%` }}
-                  transition={{ delay: i * 0.06, duration: 0.5 }} />
-              ))}
-            </div>
-          </div>
-
-          {/* New plan CTA */}
+          {/* Free trial CTA — only for free plan users */}
           {currentPlan === "essentiel" && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-accent-gradient rounded-2xl p-5 text-white mb-5">
-              <div className="flex items-start gap-3">
-                <Sparkles size={20} className="text-white/80 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-[15px] font-bold">Nouveau Plan</p>
-                  <p className="text-[12px] text-white/70 mt-1 leading-relaxed">
-                    Créez une offre personnalisée pour vos clients VIP.
-                  </p>
+              className="bg-accent-gradient rounded-2xl p-5 text-white mb-5 relative overflow-hidden">
+              {/* Decorative sparkles */}
+              <div className="absolute top-3 right-3 opacity-20"><Sparkles size={40} /></div>
+              <div className="absolute bottom-2 right-10 opacity-10"><Star size={24} /></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift size={20} className="text-white" />
+                  <p className="text-[17px] font-bold">1 mois d&apos;essai gratuit</p>
                 </div>
+                <p className="text-[13px] text-white/75 leading-relaxed">
+                  Essayez le plan Pro avec toutes les fonctionnalités. Sans engagement.
+                </p>
+                <p className="text-[11px] text-white/50 mt-1">Annulable à tout moment.</p>
+
+                <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleSelectPlan("croissance")}
+                  className="mt-4 bg-white text-accent py-3 rounded-xl text-[14px] font-bold text-center w-full shadow-sm">
+                  Démarrer l&apos;essai gratuit
+                </motion.button>
               </div>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleSelectPlan("croissance")}
-                className="mt-4 bg-white text-accent py-2.5 rounded-xl text-[13px] font-bold text-center w-full">
-                Lancer l&apos;offre
-              </motion.button>
             </motion.div>
           )}
 
-          {/* Plans */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[18px] font-bold text-foreground">Plans Disponibles</h2>
-            <span className="text-[11px] text-accent font-bold flex items-center gap-1">Voir tous les tarifs <ChevronRight size={12} /></span>
-          </div>
+          {/* Plans header */}
+          <h2 className="text-[18px] font-bold text-foreground mb-4">Plans Disponibles</h2>
 
+          {/* Plan cards */}
           <div className="space-y-4 mb-6">
             {PLANS.map((plan, idx) => {
               const isCurrent = currentPlan === plan.id;
@@ -179,27 +160,28 @@ export default function SubscriptionPage() {
                   transition={{ delay: idx * 0.08 }}
                   className={`bg-white rounded-2xl shadow-card-premium overflow-hidden ${plan.popular ? "ring-2 ring-accent" : ""}`}>
 
-                  {/* Plan header */}
                   <div className="p-5 pb-4">
+                    {/* Plan name + badge */}
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-[9px] text-muted font-bold uppercase tracking-wider">{PLAN_NAMES[plan.id]}</p>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${plan.popular ? "bg-accent-soft" : "bg-border-light"}`}>
+                          <Icon size={15} className={plan.popular ? "text-accent" : "text-muted"} />
+                        </div>
+                        <p className="text-[10px] text-muted font-bold uppercase tracking-wider">{PLAN_NAMES[plan.id]}</p>
+                      </div>
                       {plan.popular && (
                         <span className="text-[8px] font-bold text-white bg-accent px-2.5 py-0.5 rounded-full uppercase tracking-wider">Plus populaire</span>
                       )}
                     </div>
-                    <div className="flex items-end gap-1 mt-2">
-                      {plan.id === "entreprise" ? (
-                        <p className="text-[26px] font-bold text-foreground leading-none">Sur Mesure</p>
-                      ) : (
-                        <>
-                          <span className="text-[32px] font-bold text-foreground leading-none">{PLAN_PRICES[plan.id]}€</span>
-                          <span className="text-[13px] text-muted mb-1">/mo</span>
-                        </>
-                      )}
+
+                    {/* Pricing */}
+                    <div className="flex items-end gap-1 mt-3 mb-4">
+                      <span className="text-[32px] font-bold text-foreground leading-none">{PLAN_PRICES[plan.id]}€</span>
+                      <span className="text-[13px] text-muted mb-1">/ mois</span>
                     </div>
 
                     {/* Features */}
-                    <div className="mt-4 space-y-2.5">
+                    <div className="space-y-2.5">
                       {plan.features.map((f, i) => (
                         <div key={i} className="flex items-center gap-2.5">
                           {f.ok ? (
@@ -224,10 +206,10 @@ export default function SubscriptionPage() {
                       disabled={isCurrent}
                       className={`w-full py-3.5 rounded-xl text-[13px] font-bold text-center transition-all ${
                         isCurrent ? "bg-border-light text-muted"
-                        : plan.popular ? "bg-accent text-white"
-                        : "bg-white border-2 border-border text-foreground"
+                        : plan.popular ? "bg-accent text-white fab-shadow"
+                        : "bg-white border-2 border-border text-foreground hover:border-accent"
                       }`}>
-                      {isCurrent ? "Plan actuel" : plan.cta}
+                      {isCurrent ? "Plan actuel" : plan.popular ? "Commencer l'essai gratuit" : plan.cta}
                     </motion.button>
                   </div>
                 </motion.div>
@@ -235,10 +217,27 @@ export default function SubscriptionPage() {
             })}
           </div>
 
+          {/* Social proof */}
+          <div className="bg-white rounded-2xl p-4 shadow-card-premium mb-4 flex items-center gap-3">
+            <div className="flex -space-x-2">
+              {["#7C3AED", "#3B82F6", "#10B981"].map((c, i) => (
+                <div key={i} className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: c }}>
+                  {["A", "M", "S"][i]}
+                </div>
+              ))}
+            </div>
+            <div className="flex-1">
+              <p className="text-[12px] font-bold text-foreground">+2 000 professionnels</p>
+              <p className="text-[10px] text-muted">font confiance à Lumière Pro</p>
+            </div>
+            <div className="flex gap-0.5">{[1,2,3,4,5].map((i) => <Star key={i} size={10} className="text-warning fill-warning" />)}</div>
+          </div>
+
           {/* Guarantee */}
-          <div className="bg-border-light rounded-2xl p-4 text-center mb-4">
+          <div className="bg-border-light rounded-2xl p-4 text-center">
             <Shield size={16} className="text-muted mx-auto mb-1.5" />
-            <p className="text-[12px] text-muted">Satisfait ou remboursé pendant 14 jours</p>
+            <p className="text-[12px] font-bold text-foreground">Satisfait ou remboursé</p>
+            <p className="text-[10px] text-muted mt-0.5">14 jours pour essayer, sans risque.</p>
           </div>
         </div>
       </div>
@@ -257,15 +256,15 @@ export default function SubscriptionPage() {
                   <CheckCircle2 size={28} className="text-accent" />
                 </div>
                 <h3 className="text-[20px] font-bold text-foreground">Passer au plan {PLAN_NAMES[showConfirm]} ?</h3>
-                <p className="text-[13px] text-muted mt-2">
-                  {showConfirm === "entreprise"
-                    ? "Contactez-nous pour un devis personnalisé."
-                    : `Vous serez facturé ${PLAN_PRICES[showConfirm]}€/mois. Annulable à tout moment.`}
+                <p className="text-[13px] text-muted mt-2 leading-relaxed">
+                  {showConfirm === "croissance"
+                    ? "1 mois gratuit, puis 9,99€ / mois. Annulable à tout moment."
+                    : "Vous serez facturé 19,99€ / mois. Annulable à tout moment."}
                 </p>
               </div>
               <motion.button whileTap={{ scale: 0.97 }} onClick={confirmPlan}
                 className="w-full bg-accent text-white py-4 rounded-2xl text-[15px] font-bold fab-shadow">
-                Confirmer
+                Confirmer le changement
               </motion.button>
               <button onClick={() => setShowConfirm(null)}
                 className="w-full text-[13px] text-muted font-semibold mt-3 py-2">Annuler</button>

@@ -166,7 +166,7 @@ export default function ProfilePage() {
             <motion.div whileTap={{ scale: 0.98 }} className="w-full bg-accent-gradient rounded-[22px] p-5 shadow-card-premium text-left mb-5">
               <p className="text-[10px] text-white/60 font-bold uppercase tracking-wider mb-1">Abonnement</p>
               <h3 className="text-[20px] font-bold text-white">{(() => { const names: Record<string, string> = { essentiel: "Essentiel", croissance: "Croissance", entreprise: "Entreprise" }; return names[user.plan || "essentiel"] || "Essentiel"; })()}</h3>
-              <div className="flex items-end gap-1 mt-1 mb-3"><p className="text-[28px] font-bold text-white leading-none">{(() => { const prices: Record<string, number> = { essentiel: 0, croissance: 49, entreprise: 129 }; return prices[user.plan || "essentiel"] ?? 0; })()}€</p><p className="text-[13px] text-white/70 mb-0.5">/mois</p></div>
+              <div className="flex items-end gap-1 mt-1 mb-3"><p className="text-[28px] font-bold text-white leading-none">{(() => { const p: Record<string, string> = { essentiel: "0", croissance: "9,99", entreprise: "19,99" }; return p[user.plan || "essentiel"] ?? "0"; })()}€</p><p className="text-[13px] text-white/70 mb-0.5">/ mois</p></div>
               <div className="bg-white rounded-xl py-2.5 text-center"><span className="text-[13px] font-bold" style={{ color: "var(--color-accent)" }}>Gérer l&apos;abonnement</span></div>
             </motion.div>
           </Link>

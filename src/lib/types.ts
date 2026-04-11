@@ -130,16 +130,16 @@ export const PLAN_FEATURES: Record<PlanTier, Feature[]> = {
   ],
 };
 
-export const PLAN_PRICES: Record<PlanTier, number> = {
-  essentiel: 0,
-  croissance: 49,
-  entreprise: 129,
+export const PLAN_PRICES: Record<PlanTier, string> = {
+  essentiel: "0",
+  croissance: "9,99",
+  entreprise: "19,99",
 };
 
 export const PLAN_NAMES: Record<PlanTier, string> = {
   essentiel: "Essentiel",
-  croissance: "Croissance",
-  entreprise: "Entreprise",
+  croissance: "Pro",
+  entreprise: "Elite",
 };
 
 /** Check if a plan has access to a specific feature */
