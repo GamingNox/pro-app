@@ -111,18 +111,19 @@ export default function ProfilePage() {
   function flash() { setSaved(true); setTimeout(() => setSaved(false), 1500); }
 
   // Settings categories with sub-items
+  // Settings categories — items with __link__ prefix navigate to full pages
   const categories = [
     { title: "Compte & Informations", items: [
-      { i: "🏢", t: "Informations entreprise", s: "Identité, contact, réseaux.", k: "info" },
+      { i: "🏢", t: "Informations entreprise", s: "Identité, contact, réseaux.", k: "__link__/settings/info" },
       { i: "🌍", t: "Visibilité publique", s: "Page en ligne.", k: "visibility", p: true },
     ]},
     { title: "Activité", items: [
-      { i: "📊", t: "Statistiques", s: "Performance et historique.", k: "activity" },
-      { i: "💬", t: "Messages automatisés", s: "Rappels et confirmations.", k: "messages" },
+      { i: "📊", t: "Statistiques & Performance", s: "KPIs, tendances et insights.", k: "__link__/settings/analytics" },
+      { i: "💬", t: "Messages automatisés", s: "Rappels et confirmations.", k: "__link__/settings/messages" },
     ]},
     { title: "Réservations", items: [
-      { i: "📅", t: "Disponibilités", s: "Horaires, jours, congés.", k: "booking" },
-      { i: "🔗", t: "Lien de réservation", s: "Page de booking.", k: "bookingLink" },
+      { i: "📅", t: "Disponibilités & Horaires", s: "Créneaux, congés, règles.", k: "__link__/settings/availability" },
+      { i: "🔗", t: "Lien de réservation", s: "URL, QR code, intégration.", k: "__link__/settings/booking-link" },
     ]},
     { title: "Clients & Fidélisation", items: [
       { i: "👥", t: "Gestion clients", s: "Badges et acomptes.", k: "clients" },
@@ -131,12 +132,12 @@ export default function ProfilePage() {
       { i: "🎫", t: "Avantages clients", s: "Codes promo, cartes cadeaux.", k: "advantages" },
     ]},
     { title: "Paiements & Comptabilité", items: [
-      { i: "💳", t: "Paiements", s: "Moyens, terminal.", k: "payments" },
+      { i: "💳", t: "Paiements & Facturation", s: "Stripe, TVA, coordonnées.", k: "__link__/settings/payments" },
       { i: "🧾", t: "Comptabilité", s: "TVA, factures, export.", k: "accounting" },
       { i: "📦", t: "Stock", s: "Alertes, fournisseurs.", k: "stock" },
     ]},
     { title: "Application", items: [
-      { i: "🎨", t: "Personnalisation", s: "Couleurs et thème.", k: "personalization" },
+      { i: "🎨", t: "Personnalisation", s: "Couleurs et thème.", k: "__link__/settings/personalization" },
       { i: "⚙️", t: "Préférences", s: "Notifications, données.", k: "appSettings" },
       { i: "📘", t: "Guide", s: "Découvrir l'application.", k: "__link__/guide" },
     ]},
