@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { spring, duration } from "@/lib/motion";
+import { spring, dur } from "@/lib/motion";
 import type { ReactNode } from "react";
 
 interface ModalProps {
@@ -56,7 +56,7 @@ export default function Modal({ open, onClose, title, children, size = "default"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: duration.normal }}
+            transition={{ duration: dur.normal }}
             onClick={onClose}
             className="absolute inset-0 bg-black/35 backdrop-blur-modal"
           />
