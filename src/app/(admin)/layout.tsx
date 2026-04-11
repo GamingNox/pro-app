@@ -9,7 +9,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   useEffect(() => {
-    const auth = localStorage.getItem("admin-auth") || sessionStorage.getItem("admin-auth");
+    // Admin session is ALWAYS in localStorage (persists across browser restarts)
+    const auth = localStorage.getItem("admin-auth");
     if (auth === "true") {
       setAuthorized(true);
     } else {

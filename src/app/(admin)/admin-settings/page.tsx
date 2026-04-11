@@ -137,7 +137,6 @@ export default function AdminSettingsPage() {
 
   function handleLogout() {
     localStorage.removeItem("admin-auth");
-    sessionStorage.removeItem("admin-auth");
     router.replace("/admin-login");
   }
 
