@@ -204,12 +204,15 @@ export default function ProfilePage() {
             </div>
           ))}
 
-          {/* Support + Legal + Logout */}
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowChat(true)} className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3 mb-3">
-            <Headphones size={16} className="text-accent" /><span className="text-[13px] font-semibold text-foreground flex-1">Contacter le support</span>
-            <UnreadBadge userId={user.email || "pro-user"} />
+          {/* Help + Legal + Logout */}
+          <Link href="/settings/notifications" className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3 mb-3">
+            <Bell size={16} className="text-accent" /><span className="text-[13px] font-semibold text-foreground flex-1">Notifications</span>
             <ChevronRight size={15} className="text-border" />
-          </motion.button>
+          </Link>
+          <Link href="/settings/help" className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3 mb-3">
+            <Headphones size={16} className="text-accent" /><span className="text-[13px] font-semibold text-foreground flex-1">Besoin d&apos;aide</span>
+            <ChevronRight size={15} className="text-border" />
+          </Link>
           <motion.button whileTap={{ scale: 0.98 }} onClick={() => setV("legal")} className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3 mb-3">
             <Shield size={16} className="text-muted" /><span className="text-[13px] font-semibold text-foreground flex-1">Mentions légales</span><ChevronRight size={15} className="text-border" />
           </motion.button>
