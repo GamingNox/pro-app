@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { memo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { spring, dur } from "@/lib/motion";
@@ -14,7 +14,7 @@ interface ModalProps {
   size?: "default" | "large";
 }
 
-export default function Modal({ open, onClose, title, children, size = "default" }: ModalProps) {
+export default memo(function Modal({ open, onClose, title, children, size = "default" }: ModalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function Modal({ open, onClose, title, children, size = "default"
           className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
           onTouchMove={handleBackdropTouch}
         >
-          {/* Backdrop — smooth fade with blur */}
+          {/* Backdrop — fast fade */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -81,10 +81,10 @@ export default function Modal({ open, onClose, title, children, size = "default"
             <div className="flex items-center justify-between px-6 pt-4 pb-3 flex-shrink-0">
               <h2 className="text-[18px] font-bold text-foreground tracking-tight">{title}</h2>
               <motion.button
-                whileTap={{ scale: 0.8 }}
+                whileTap={{ scale: 0.9 }}
                 transition={spring.snappy}
                 onClick={onClose}
-                className="w-[32px] h-[32px] rounded-full bg-border-light flex items-center justify-center text-muted hover:bg-border transition-colors duration-200"
+                className="w-[32px] h-[32px] rounded-full bg-border-light flex items-center justify-center text-muted hover:bg-border transition-colors duration-100"
               >
                 <X size={15} strokeWidth={2.5} />
               </motion.button>
@@ -103,4 +103,4 @@ export default function Modal({ open, onClose, title, children, size = "default"
       )}
     </AnimatePresence>
   );
-}
+});

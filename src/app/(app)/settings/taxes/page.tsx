@@ -59,7 +59,8 @@ export default function SettingsTaxesPage() {
               <div className="flex gap-2">
                 {["5.5", "10", "20"].map((r) => (
                   <motion.button key={r} whileTap={{ scale: 0.95 }} onClick={() => setTvaRate(r)}
-                    className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold ${tvaRate === r ? "bg-accent text-white" : "bg-border-light text-muted"}`}>
+                    className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold ${tvaRate === r ? "text-white" : "bg-border-light text-muted"}`}
+                    style={tvaRate === r ? { backgroundColor: "var(--color-primary)" } : undefined}>
                     {r}%
                   </motion.button>
                 ))}
@@ -77,11 +78,15 @@ export default function SettingsTaxesPage() {
       {/* Export tools */}
       <SettingsSection title="Outils d'exportation">
         <div className="space-y-3">
-          <motion.button whileTap={{ scale: 0.97 }}
-            className="w-full bg-accent text-white py-3.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2">
+          <motion.button whileTap={{ scale: 0.98 }}
+            className="w-full text-white py-3.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"
+            style={{
+              background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-deep))",
+              boxShadow: "0 10px 24px color-mix(in srgb, var(--color-primary) 30%, transparent)",
+            }}>
             <Download size={15} /> Exporter pour mon comptable
           </motion.button>
-          <motion.button whileTap={{ scale: 0.97 }}
+          <motion.button whileTap={{ scale: 0.98 }}
             className="w-full bg-border-light text-foreground py-3.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2">
             <FileText size={15} /> Générer rapport PDF
           </motion.button>

@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Bell, Users, CreditCard, LogOut, ChevronRight, Settings, Globe, Lock, MessageCircle, ArrowLeft, Save, CheckCircle2 } from "lucide-react";
+import { Shield, Bell, Users, CreditCard, LogOut, ChevronRight, Settings, Globe, Lock, MessageCircle, ArrowLeft, Save, CheckCircle2, Activity, Sparkles } from "lucide-react";
 import { AdminChatPanel, UnreadBadge } from "@/components/SupportChat";
 
 type View = null | "platform" | "users" | "billing" | "notifications" | "security" | "advanced";
 
 function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
-    <motion.button whileTap={{ scale: 0.9 }} onClick={onToggle}
+    <motion.button whileTap={{ scale: 0.96 }} onClick={onToggle}
       className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-all ${on ? "justify-end" : "justify-start"}`}
       style={{ backgroundColor: on ? "var(--color-accent)" : "var(--color-border)" }}>
       <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
@@ -59,7 +59,7 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState(false);
 
   // Platform
-  const [platformName, setPlatformName] = useState("Lumiere Pro");
+  const [platformName, setPlatformName] = useState("Client Base");
   const [platformDesc, setPlatformDesc] = useState("Plateforme de gestion pour professionnels");
   const [platformLang, setPlatformLang] = useState("fr");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -140,13 +140,37 @@ export default function AdminSettingsPage() {
     router.replace("/admin-login");
   }
 
-  const settingsItems = [
-    { key: "platform" as const, icon: Globe, label: "Plateforme", sub: "Nom, description, langue", color: "bg-accent-soft", ic: "text-accent" },
-    { key: "users" as const, icon: Users, label: "Politiques utilisateurs", sub: "Inscription, verification, limites", color: "bg-accent-soft", ic: "text-accent" },
-    { key: "billing" as const, icon: CreditCard, label: "Facturation", sub: "Devise, commission, essai gratuit", color: "bg-warning-soft", ic: "text-warning" },
-    { key: "notifications" as const, icon: Bell, label: "Notifications", sub: "Email, push, rapports", color: "bg-border-light", ic: "text-muted" },
-    { key: "security" as const, icon: Lock, label: "Securite", sub: "2FA, sessions, mots de passe", color: "bg-danger-soft", ic: "text-danger" },
-    { key: "advanced" as const, icon: Settings, label: "Avance", sub: "Webhooks, mode debug", color: "bg-border-light", ic: "text-muted" },
+  const settingsGroups: { title: string; helper: string; items: { key: Exclude<View, null>; icon: typeof Globe; label: string; sub: string; color: string; ic: string }[] }[] = [
+    {
+      title: "Plateforme & Branding",
+      helper: "L'identité de votre plateforme et son mode de fonctionnement.",
+      items: [
+        { key: "platform", icon: Globe, label: "Identité plateforme", sub: "Nom, description, langue, maintenance", color: "bg-accent-soft", ic: "text-accent" },
+      ],
+    },
+    {
+      title: "Politique utilisateurs",
+      helper: "Qui peut s'inscrire, comment, et avec quelles protections.",
+      items: [
+        { key: "users", icon: Users, label: "Règles d'inscription", sub: "Vérification email, approbation, limites", color: "bg-accent-soft", ic: "text-accent" },
+        { key: "security", icon: Lock, label: "Sécurité des comptes", sub: "2FA, sessions, mots de passe, rate-limit", color: "bg-danger-soft", ic: "text-danger" },
+      ],
+    },
+    {
+      title: "Monétisation & communication",
+      helper: "Facturation, devises et notifications admin.",
+      items: [
+        { key: "billing", icon: CreditCard, label: "Facturation & devises", sub: "Devise, commission, essai gratuit", color: "bg-warning-soft", ic: "text-warning" },
+        { key: "notifications", icon: Bell, label: "Notifications admin", sub: "Email, push, rapports hebdo", color: "bg-border-light", ic: "text-muted" },
+      ],
+    },
+    {
+      title: "Système",
+      helper: "Intégrations techniques et options avancées.",
+      items: [
+        { key: "advanced", icon: Settings, label: "Avancé & intégrations", sub: "Webhooks, mode debug", color: "bg-border-light", ic: "text-muted" },
+      ],
+    },
   ];
 
   const viewTitle: Record<string, string> = {
@@ -163,7 +187,7 @@ export default function AdminSettingsPage() {
       case "platform":
         return (
           <>
-            <Field label="Nom de la plateforme" value={platformName} onChange={setPlatformName} placeholder="Lumiere Pro" />
+            <Field label="Nom de la plateforme" value={platformName} onChange={setPlatformName} placeholder="Client Base" />
             <Field label="Description" value={platformDesc} onChange={setPlatformDesc} placeholder="Description de votre plateforme" />
             <SelectField label="Langue" value={platformLang} onChange={setPlatformLang} options={[
               { v: "fr", l: "Francais" }, { v: "en", l: "English" }, { v: "es", l: "Espanol" },
@@ -244,10 +268,10 @@ export default function AdminSettingsPage() {
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
       <AnimatePresence mode="wait">
         {view ? (
-          <motion.div key={view} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
+          <motion.div key={view} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
             className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-shrink-0 px-6 pt-5 pb-3 flex items-center gap-3">
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setView(null)}
+              <motion.button whileTap={{ scale: 0.96 }} onClick={() => setView(null)}
                 className="w-9 h-9 rounded-xl bg-border-light flex items-center justify-center">
                 <ArrowLeft size={18} className="text-foreground" />
               </motion.button>
@@ -258,7 +282,7 @@ export default function AdminSettingsPage() {
                 <div className="bg-white rounded-2xl p-5 shadow-card-premium mb-4">
                   {renderDetail()}
                 </div>
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => { saveAll(); setView(null); }}
+                <motion.button whileTap={{ scale: 0.98 }} onClick={() => { saveAll(); setView(null); }}
                   className="w-full bg-accent-gradient text-white py-3.5 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 fab-shadow">
                   <Save size={15} /> Enregistrer
                 </motion.button>
@@ -266,7 +290,7 @@ export default function AdminSettingsPage() {
             </div>
           </motion.div>
         ) : (
-          <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -40 }}
+          <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -8 }}
             className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-shrink-0 px-6 pt-5 pb-3">
               <h1 className="text-[24px] font-bold text-foreground tracking-tight">Reglages</h1>
@@ -285,37 +309,58 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
 
-                {/* Settings categories */}
-                <div className="space-y-3 mb-5">
-                  {settingsItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <motion.button key={item.key} whileTap={{ scale: 0.98 }} onClick={() => setView(item.key)}
-                        className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3.5 text-left">
-                        <div className={`w-11 h-11 rounded-xl ${item.color} flex items-center justify-center flex-shrink-0`}><Icon size={18} className={item.ic} /></div>
-                        <div className="flex-1"><p className="text-[14px] font-bold text-foreground">{item.label}</p><p className="text-[11px] text-muted mt-0.5">{item.sub}</p></div>
-                        <ChevronRight size={16} className="text-border" />
-                      </motion.button>
-                    );
-                  })}
+                {/* Grouped settings categories */}
+                {settingsGroups.map((group) => (
+                  <div key={group.title} className="mb-5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted mb-1 px-1">{group.title}</p>
+                    <p className="text-[11px] text-muted px-1 mb-2.5 leading-relaxed">{group.helper}</p>
+                    <div className="space-y-2.5">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <motion.button key={item.key} whileTap={{ scale: 0.98 }} onClick={() => setView(item.key)}
+                            className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3.5 text-left">
+                            <div className={`w-11 h-11 rounded-xl ${item.color} flex items-center justify-center flex-shrink-0`}><Icon size={18} className={item.ic} /></div>
+                            <div className="flex-1 min-w-0"><p className="text-[14px] font-bold text-foreground">{item.label}</p><p className="text-[11px] text-muted mt-0.5">{item.sub}</p></div>
+                            <ChevronRight size={16} className="text-border" />
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Raccourcis opérationnels */}
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted mb-2.5 px-1">Raccourcis admin</p>
+                <div className="space-y-2.5 mb-5">
+                  <motion.button whileTap={{ scale: 0.98 }} onClick={() => router.push("/admin-activity")}
+                    className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3.5 text-left">
+                    <div className="w-11 h-11 rounded-xl bg-accent-soft flex items-center justify-center"><Activity size={18} className="text-accent" /></div>
+                    <div className="flex-1 min-w-0"><p className="text-[14px] font-bold text-foreground">Journal d&apos;activité</p><p className="text-[11px] text-muted mt-0.5">Signups, demandes bêta, messages récents</p></div>
+                    <ChevronRight size={16} className="text-border" />
+                  </motion.button>
+                  <motion.button whileTap={{ scale: 0.98 }} onClick={() => router.push("/admin-beta")}
+                    className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3.5 text-left">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#F3F0FF" }}><Sparkles size={18} style={{ color: "#8B5CF6" }} /></div>
+                    <div className="flex-1 min-w-0"><p className="text-[14px] font-bold text-foreground">Candidats bêta</p><p className="text-[11px] text-muted mt-0.5">Approuver ou refuser les demandes</p></div>
+                    <ChevronRight size={16} className="text-border" />
+                  </motion.button>
+                  <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowChat(true)}
+                    className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3.5 text-left">
+                    <div className="w-11 h-11 rounded-xl bg-accent-soft flex items-center justify-center"><MessageCircle size={18} className="text-accent" /></div>
+                    <div className="flex-1 min-w-0"><p className="text-[14px] font-bold text-foreground">Messages support</p><p className="text-[11px] text-muted mt-0.5">Voir et répondre aux conversations</p></div>
+                    <UnreadBadge userId="admin" />
+                    <ChevronRight size={16} className="text-border" />
+                  </motion.button>
                 </div>
 
-                {/* Support messages */}
-                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowChat(true)}
-                  className="w-full bg-white rounded-2xl p-4 shadow-card-premium flex items-center gap-3.5 text-left mb-5">
-                  <div className="w-11 h-11 rounded-xl bg-accent-soft flex items-center justify-center"><MessageCircle size={18} className="text-accent" /></div>
-                  <div className="flex-1"><p className="text-[14px] font-bold text-foreground">Messages support</p><p className="text-[11px] text-muted mt-0.5">Voir et repondre aux conversations.</p></div>
-                  <UnreadBadge userId="admin" />
-                  <ChevronRight size={16} className="text-border" />
-                </motion.button>
-
                 {/* Logout */}
-                <motion.button whileTap={{ scale: 0.97 }} onClick={handleLogout}
+                <motion.button whileTap={{ scale: 0.98 }} onClick={handleLogout}
                   className="w-full bg-danger-soft rounded-2xl py-4 flex items-center justify-center gap-2">
                   <LogOut size={17} className="text-danger" /><span className="text-[15px] font-bold text-danger">Deconnexion admin</span>
                 </motion.button>
 
-                <div className="text-center mt-4"><p className="text-[10px] text-subtle">Lumiere Pro Admin · v1.0</p></div>
+                <div className="text-center mt-4"><p className="text-[10px] text-subtle">Client Base Admin · v1.0</p></div>
               </div>
             </div>
           </motion.div>
@@ -325,7 +370,7 @@ export default function AdminSettingsPage() {
       {/* Saved toast */}
       <AnimatePresence>
         {saved && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
             className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-success text-white px-5 py-2.5 rounded-xl shadow-apple-lg flex items-center gap-2 z-50">
             <CheckCircle2 size={16} /> <span className="text-[13px] font-bold">Enregistre</span>
           </motion.div>

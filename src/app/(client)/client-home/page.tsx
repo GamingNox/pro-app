@@ -60,7 +60,7 @@ export default function ClientHomePage() {
             <p className="text-[13px] text-muted mt-0.5">Ravi de vous revoir.</p>
           </div>
           <div className="flex items-center gap-2">
-            <motion.button whileTap={{ scale: 0.88 }} className="relative w-10 h-10 rounded-xl bg-white shadow-card-premium flex items-center justify-center">
+            <motion.button whileTap={{ scale: 0.95 }} className="relative w-10 h-10 rounded-xl bg-white shadow-card-premium flex items-center justify-center">
               <Bell size={18} className="text-muted" />
             </motion.button>
           </div>
@@ -108,7 +108,7 @@ export default function ClientHomePage() {
                 {chartData.map((h, i) => (
                   <motion.div key={i} className={`flex-1 rounded-[3px] ${i === chartData.length - 1 ? "bg-accent" : "bg-accent/12"}`}
                     initial={{ height: "10%" }} animate={{ height: `${h}%` }}
-                    transition={{ delay: 0.1 + i * 0.04, duration: 0.5 }} />
+                    transition={{ delay: i * 0.03, duration: 0.2 }} />
                 ))}
               </div>
             ) : (
@@ -145,7 +145,7 @@ export default function ClientHomePage() {
                         </div>
                       </div>
                       <Link href="/reservations">
-                        <motion.div whileTap={{ scale: 0.97 }}
+                        <motion.div whileTap={{ scale: 0.98 }}
                           className="mt-3 bg-white rounded-xl py-2.5 text-center text-[12px] font-bold text-foreground shadow-sm-apple">
                           Détails du RDV
                         </motion.div>

@@ -1,19 +1,21 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Users, CreditCard, LayoutGrid, BarChart3, Settings } from "lucide-react";
+import { Users, Wrench, LayoutGrid, BarChart3, Settings } from "lucide-react";
+import { spring, tap } from "@/lib/motion";
 
 const tabs = [
-  { href: "/admin-users", label: "UTILISATEURS", icon: Users },
-  { href: "/admin-plans", label: "ABONNEMENTS", icon: CreditCard },
+  { href: "/admin-users", label: "USERS", icon: Users },
+  { href: "/admin-tools", label: "OUTILS", icon: Wrench },
   { href: "/admin-dashboard", label: "ACCUEIL", icon: LayoutGrid, center: true },
-  { href: "/admin-analytics", label: "ANALYTICS", icon: BarChart3 },
+  { href: "/admin-analytics", label: "STATS", icon: BarChart3 },
   { href: "/admin-settings", label: "REGLAGES", icon: Settings },
 ];
 
-export default function AdminNav() {
+export default memo(function AdminNav() {
   const pathname = usePathname();
 
   return (
@@ -26,8 +28,8 @@ export default function AdminNav() {
           if (tab.center) {
             return (
               <Link key={tab.href} href={tab.href} className="relative flex items-center justify-center -mt-4 w-16 pb-2.5">
-                <motion.div whileTap={{ scale: 0.88 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                  className={`w-[54px] h-[54px] rounded-[18px] flex items-center justify-center transition-all duration-300 ${isActive ? "bg-accent-gradient fab-shadow" : "bg-border-light shadow-apple"}`}>
+                <motion.div whileTap={{ scale: 0.93 }} transition={spring.snappy}
+                  className={`w-[54px] h-[54px] rounded-[18px] flex items-center justify-center transition-all duration-150 ${isActive ? "bg-accent-gradient fab-shadow" : "bg-border-light shadow-apple"}`}>
                   <Icon size={22} strokeWidth={1.8} className={isActive ? "text-white" : "text-muted"} />
                 </motion.div>
               </Link>
@@ -35,18 +37,18 @@ export default function AdminNav() {
           }
 
           return (
-            <Link key={tab.href} href={tab.href} className="flex flex-col items-center justify-end gap-1 w-14 relative pb-2.5 pt-2.5">
-              <motion.div whileTap={{ scale: 0.85 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
-                <Icon size={21} strokeWidth={isActive ? 2 : 1.5} className={`transition-colors duration-300 ${isActive ? "text-accent" : "text-muted"}`} />
+            <Link key={tab.href} href={tab.href} className="flex flex-col items-center justify-center gap-1 w-14 relative pb-3 pt-1">
+              <motion.div whileTap={tap.icon} transition={spring.snappy}>
+                <Icon size={21} strokeWidth={isActive ? 2 : 1.5} className={`transition-colors duration-150 ${isActive ? "text-accent" : "text-muted"}`} />
               </motion.div>
-              <span className={`text-[8px] leading-none tracking-wider ${isActive ? "text-accent font-bold" : "text-muted font-medium"}`}>
+              <span className={`text-[9px] leading-none tracking-[0.03em] whitespace-nowrap transition-all duration-150 ${isActive ? "text-accent font-bold" : "text-muted font-medium"}`}>
                 {tab.label}
               </span>
-              {isActive && <motion.div layoutId="admin-nav" className="absolute top-0 w-5 h-[2.5px] rounded-full bg-accent" transition={{ type: "spring", stiffness: 400, damping: 30 }} />}
+              {isActive && <motion.div layoutId="admin-nav" className="absolute top-0 w-5 h-[2.5px] rounded-full bg-accent" transition={spring.gentle} />}
             </Link>
           );
         })}
       </div>
     </nav>
   );
-}
+});

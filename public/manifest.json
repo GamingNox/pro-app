@@ -1,18 +1,23 @@
 {
-  "name": "ProApp",
-  "short_name": "ProApp",
-  "description": "L'application tout-en-un pour les professionnels indépendants",
+  "name": "Clientbase",
+  "short_name": "Clientbase",
+  "description": "L'application tout-en-un pour les professionnels independants",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F5F5F7",
-  "theme_color": "#007AFF",
+  "background_color": "#FFFFFF",
+  "theme_color": "#5B4FE9",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
     {
       "src": "/icon-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.svg",

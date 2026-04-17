@@ -47,7 +47,7 @@ export default function SettingsInfoPage() {
           <div>
             <label className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Nom de l&apos;établissement</label>
             <input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })}
-              placeholder="ex: Studio Lumière" className="input-field" />
+              placeholder="ex: Mon Etablissement" className="input-field" />
           </div>
           <div>
             <label className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Slogan ou description courte</label>
@@ -100,15 +100,19 @@ export default function SettingsInfoPage() {
             <input value={form.web} onChange={(e) => setForm({ ...form, web: e.target.value })}
               placeholder="linkedin.com/company/studio" className="flex-1 bg-transparent text-[14px] outline-none placeholder:text-subtle" />
           </div>
-          <button className="text-[12px] text-accent font-bold">+ Ajouter un autre lien</button>
+          <p className="text-[11px] text-muted">D&apos;autres liens pourront etre ajoutes prochainement.</p>
         </div>
       </SettingsSection>
 
       {/* Actions */}
       <div className="flex gap-3 mb-5">
         <button onClick={() => history.back()} className="flex-1 bg-white border-2 border-border py-3.5 rounded-2xl text-[14px] font-bold text-foreground">Annuler</button>
-        <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave}
-          className="flex-1 bg-accent text-white py-3.5 rounded-2xl text-[14px] font-bold fab-shadow">
+        <motion.button whileTap={{ scale: 0.98 }} onClick={handleSave}
+          className="flex-1 text-white py-3.5 rounded-2xl text-[14px] font-bold fab-shadow"
+          style={{
+            background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-deep))",
+            boxShadow: "0 10px 24px color-mix(in srgb, var(--color-primary) 30%, transparent)",
+          }}>
           {saved ? "Enregistré !" : "Enregistrer"}
         </motion.button>
       </div>

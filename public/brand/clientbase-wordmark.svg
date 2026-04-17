@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="160" viewBox="0 0 780 160">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5B4FE9"/>
+      <stop offset="55%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#5B4FE9"/>
+    </linearGradient>
+  </defs>
+  <text x="12" y="118"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif"
+        font-weight="800"
+        font-size="128"
+        letter-spacing="-5"
+        fill="#0A0A0A">Clientbase<tspan fill="url(#accent)">.fr</tspan></text>
+</svg>

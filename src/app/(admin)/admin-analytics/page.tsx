@@ -70,7 +70,7 @@ export default function AdminAnalyticsPage() {
             <h1 className="text-[24px] font-bold text-foreground tracking-tight mt-1">Analytics</h1>
             <p className="text-[12px] text-muted">Métriques utilisateurs en temps réel</p>
           </div>
-          <motion.button whileTap={{ scale: 0.85 }} onClick={loadData} className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={loadData} className="w-10 h-10 rounded-xl bg-white flex items-center justify-center" style={{ border: "1px solid #E4E4E7", boxShadow: "0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" }}>
             <RefreshCw size={14} className={`text-muted ${loading ? "animate-spin" : ""}`} />
           </motion.button>
         </div>
@@ -117,7 +117,7 @@ export default function AdminAnalyticsPage() {
               {weeklyChart.map((d, i) => (
                 <motion.div key={i} className={`flex-1 rounded-[4px] ${i === (new Date().getDay() + 6) % 7 ? "bg-accent" : "bg-accent/12"}`}
                   initial={{ height: "10%" }} animate={{ height: `${Math.max((d.value / maxWeek) * 100, 8)}%` }}
-                  transition={{ delay: i * 0.05, duration: 0.5 }} />
+                  transition={{ delay: i * 0.05, duration: 0.2 }} />
               ))}
             </div>
             <div className="flex justify-between text-[9px] text-muted">{weeklyChart.map((d) => <span key={d.label}>{d.label}</span>)}</div>
@@ -138,9 +138,9 @@ export default function AdminAnalyticsPage() {
               <p className="text-[20px] font-bold text-foreground mt-1">{users.length}</p>
             </div>
             <div className="bg-white rounded-2xl p-4 shadow-card-premium">
-              <p className="text-[9px] text-muted font-bold uppercase">Revenus</p>
-              <p className="text-[20px] font-bold text-muted mt-1">0 €</p>
-              <p className="text-[8px] text-subtle">Stripe requis</p>
+              <p className="text-[9px] text-muted font-bold uppercase">Plans</p>
+              <p className="text-[20px] font-bold text-accent mt-1">3</p>
+              <p className="text-[8px] text-subtle">Essentiel · Pro · Elite</p>
             </div>
           </div>
 

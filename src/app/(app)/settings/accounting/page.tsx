@@ -25,7 +25,7 @@ export default function SettingsAccountingPage() {
       URL.revokeObjectURL(url);
     } else {
       // For PDF/Excel — generate a text summary as fallback
-      const content = `Rapport Lumière Pro\n${"=".repeat(40)}\nDate: ${new Date().toLocaleDateString("fr-FR")}\n\nRevenu total: ${paidTotal.toFixed(2)}€\nFactures payées: ${paid.length}\nFactures en attente: ${pendingCount}\n\n${"─".repeat(40)}\n` +
+      const content = `Rapport Client Base\n${"=".repeat(40)}\nDate: ${new Date().toLocaleDateString("fr-FR")}\n\nRevenu total: ${paidTotal.toFixed(2)}€\nFactures payées: ${paid.length}\nFactures en attente: ${pendingCount}\n\n${"─".repeat(40)}\n` +
         paid.map((i) => `${i.date} | ${i.description} | ${i.amount}€`).join("\n");
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -68,19 +68,26 @@ export default function SettingsAccountingPage() {
             { id: "csv" as const, label: "CSV", sub: "Import comptable" },
           ]).map((f) => (
             <motion.button key={f.id} whileTap={{ scale: 0.98 }} onClick={() => setExportFormat(f.id)}
-              className={`w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all ${exportFormat === f.id ? "bg-accent-soft ring-1 ring-accent/20" : "bg-border-light"}`}>
-              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${exportFormat === f.id ? "border-accent" : "border-border"}`}>
-                {exportFormat === f.id && <div className="w-2 h-2 rounded-full bg-accent" />}
+              className={`w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all ${exportFormat === f.id ? "" : "bg-border-light"}`}
+              style={exportFormat === f.id ? { backgroundColor: "var(--color-primary-soft)", boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 25%, transparent)" } : undefined}>
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${exportFormat === f.id ? "" : "border-border"}`}
+                style={exportFormat === f.id ? { borderColor: "var(--color-primary)" } : undefined}>
+                {exportFormat === f.id && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--color-primary)" }} />}
               </div>
               <div>
-                <p className={`text-[13px] font-bold ${exportFormat === f.id ? "text-accent" : "text-foreground"}`}>{f.label}</p>
+                <p className={`text-[13px] font-bold ${exportFormat === f.id ? "" : "text-foreground"}`}
+                  style={exportFormat === f.id ? { color: "var(--color-primary-deep)" } : undefined}>{f.label}</p>
                 <p className="text-[10px] text-muted">{f.sub}</p>
               </div>
             </motion.button>
           ))}
         </div>
-        <motion.button whileTap={{ scale: 0.97 }} onClick={handleDownload}
-          className="w-full bg-accent text-white py-3.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 fab-shadow">
+        <motion.button whileTap={{ scale: 0.98 }} onClick={handleDownload}
+          className="w-full text-white py-3.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2 fab-shadow"
+          style={{
+            background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-deep))",
+            boxShadow: "0 10px 24px color-mix(in srgb, var(--color-primary) 30%, transparent)",
+          }}>
           <Download size={15} /> Télécharger ({exportFormat.toUpperCase()})
         </motion.button>
       </SettingsSection>

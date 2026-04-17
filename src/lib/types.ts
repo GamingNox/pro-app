@@ -58,6 +58,7 @@ export interface Invoice {
   date: string; // ISO date
   description: string;
   items?: InvoiceItem[];
+  invoiceNumber?: string; // FA-YYYY-NNNN (assigned at creation, sequential per user)
 }
 
 // ── Stock ────────────────────────────────────────────────
@@ -157,6 +158,8 @@ export function requiredPlan(feature: Feature): PlanTier {
 // ── User ─────────────────────────────────────────────────
 export type AccountType = "pro" | "client";
 
+export type BetaStatus = "none" | "pending" | "approved" | "rejected";
+
 export interface UserProfile {
   name: string;
   business: string;
@@ -165,4 +168,65 @@ export interface UserProfile {
   bookingSlug?: string;
   accountType?: AccountType;
   plan?: PlanTier;
+  betaStatus?: BetaStatus;
+  chatEnabled?: boolean;
+  businessType?: string;
+  setupCompleted?: boolean;
+  onboardingData?: OnboardingData;
+}
+
+// Progressive multi-step onboarding snapshot. Persisted to
+// user_profiles.onboarding_data (JSONB) and to localStorage as fallback.
+export interface OnboardingData {
+  businessType?: string;
+  phone?: string;
+  services?: { name: string; price: number; duration: number }[];
+  workDays?: { [key: string]: boolean };
+  workStart?: string;
+  workEnd?: string;
+  notifications?: boolean;
+  referralCode?: string;
+  stepsCompleted?: number;
+}
+
+// ── Chat ──────────────────────────────────────────────
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId?: string;
+  bookingId: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
+
+// ── Beta tester ─────────────────────────────────────────
+export interface BetaRequest {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  motivation: string;
+  feedback?: string;
+  experience?: string;
+  status: BetaStatus;
+  createdAt: string;
+  decidedAt?: string;
+}
+
+export type BetaReportKind = "bug" | "feedback" | "suggestion";
+export type BetaReportStatus = "received" | "in_progress" | "fixed";
+
+export interface BetaReport {
+  id: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  kind: BetaReportKind;
+  title: string;
+  description: string;
+  step?: string;
+  verdict?: string;
+  createdAt: string;
+  status: BetaReportStatus;
 }

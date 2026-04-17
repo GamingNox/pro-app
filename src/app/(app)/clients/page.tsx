@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useDeferredValue } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { tabContentVariants, tabContentTransition } from "@/lib/motion";
 import { useApp } from "@/lib/store";
 import { getInitials } from "@/lib/data";
 import Modal from "@/components/Modal";
@@ -11,8 +12,9 @@ import {
   Plus, Search, Phone, Mail, FileText, CalendarDays,
   ChevronRight, Trash2, UserPlus, Edit3, CheckCircle2, XCircle, Clock,
   SlidersHorizontal, Star, Tag, Heart, Camera, Save, TrendingUp, Users,
-  CreditCard, Minus, Sparkles, Copy, Check,
+  CreditCard, Minus, Sparkles, Copy, Check, Send, MessageSquare, AtSign,
 } from "lucide-react";
+import ClientTimeline from "@/components/ClientTimeline";
 
 type Sort = "recent" | "alpha" | "frequent" | "favorites";
 type ProfileTab = "history" | "payments";
@@ -76,6 +78,7 @@ export default function ClientsPage() {
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [sort, setSort] = useState<Sort>("recent");
   const [filterTag, setFilterTag] = useState<ClientTag | "all">("all");
   const [showNew, setShowNew] = useState(false);
@@ -90,6 +93,14 @@ export default function ClientsPage() {
   const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", email: "", notes: "", tag: "" as ClientTag });
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", phone: "", email: "" });
 
+  // Group messaging state
+  const [showGroupMsg, setShowGroupMsg] = useState(false);
+  const [groupStep, setGroupStep] = useState<"compose" | "confirm" | "sent">("compose");
+  const [groupSelected, setGroupSelected] = useState<Set<string>>(new Set());
+  const [groupFilter, setGroupFilter] = useState<"all" | "vip" | "regular" | "new" | "withEmail">("all");
+  const [groupMessage, setGroupMessage] = useState("");
+  const [groupSubject, setGroupSubject] = useState("");
+
   const photoInputRef = useRef<HTMLInputElement>(null);
   const newPhotoInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,8 +108,8 @@ export default function ClientsPage() {
 
   const filtered = useMemo(() => {
     let list = [...clients];
-    if (search.trim()) {
-      const q = search.toLowerCase();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
       list = list.filter((c) => `${c.firstName} ${c.lastName} ${c.phone} ${c.email}`.toLowerCase().includes(q));
     }
     if (filterTag !== "all") list = list.filter((c) => getClientTag(c.notes) === filterTag);
@@ -107,7 +118,7 @@ export default function ClientsPage() {
     else if (sort === "favorites") list = list.filter((c) => isFavorite(c.notes)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     else list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return list;
-  }, [clients, search, sort, filterTag, appointments]);
+  }, [clients, deferredSearch, sort, filterTag, appointments]);
 
   const grouped = useMemo(() => {
     if (sort !== "alpha") return null;
@@ -211,6 +222,78 @@ export default function ClientsPage() {
     if (c) updateClient(clientId, { notes: setTagInNotes(c.notes, tag) });
   }
 
+  // ── Group messaging helpers ────────────────────────────
+  const groupEligible = useMemo(() => {
+    return clients.filter((c) => {
+      if (groupFilter === "vip") return getClientTag(c.notes) === "vip";
+      if (groupFilter === "regular") return getClientTag(c.notes) === "regular";
+      if (groupFilter === "new") return getClientTag(c.notes) === "new";
+      if (groupFilter === "withEmail") return !!c.email;
+      return true;
+    });
+  }, [clients, groupFilter]);
+
+  function openGroupMsg() {
+    setShowGroupMsg(true);
+    setGroupStep("compose");
+    setGroupSelected(new Set());
+    setGroupFilter("all");
+    setGroupMessage("");
+    setGroupSubject("");
+  }
+
+  function toggleClientSelected(id: string) {
+    const next = new Set(groupSelected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setGroupSelected(next);
+  }
+
+  function selectAllEligible() {
+    setGroupSelected(new Set(groupEligible.map((c) => c.id)));
+  }
+
+  function clearSelection() {
+    setGroupSelected(new Set());
+  }
+
+  function sendGroupMessage() {
+    const recipients = clients.filter((c) => groupSelected.has(c.id));
+    const emails = recipients.map((c) => c.email).filter(Boolean);
+
+    // Persist to local history
+    try {
+      const existing = JSON.parse(localStorage.getItem("group_messages_history") || "[]") as Array<{
+        id: string;
+        subject: string;
+        body: string;
+        recipientIds: string[];
+        sentAt: number;
+      }>;
+      existing.unshift({
+        id: Date.now().toString(36),
+        subject: groupSubject.trim() || "Message",
+        body: groupMessage.trim(),
+        recipientIds: recipients.map((r) => r.id),
+        sentAt: Date.now(),
+      });
+      localStorage.setItem("group_messages_history", JSON.stringify(existing.slice(0, 50)));
+    } catch { /* ignore storage errors */ }
+
+    // Open mailto with BCC for real delivery (if any emails)
+    if (emails.length > 0) {
+      const subject = encodeURIComponent(groupSubject.trim() || "Message important");
+      const body = encodeURIComponent(groupMessage.trim());
+      const bcc = emails.join(",");
+      window.location.href = `mailto:?bcc=${bcc}&subject=${subject}&body=${body}`;
+    }
+
+    setGroupStep("sent");
+  }
+
+  const groupRecipients = clients.filter((c) => groupSelected.has(c.id));
+  const groupRecipientsWithEmail = groupRecipients.filter((c) => c.email).length;
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative bg-background">
 
@@ -218,11 +301,22 @@ export default function ClientsPage() {
       <div className="flex-shrink-0">
         <header className="px-6 pt-5 pb-3 flex items-center justify-between">
           <h1 className="text-[22px] font-bold text-foreground tracking-tight">Gestion Clients</h1>
-          <motion.button whileTap={{ scale: 0.94 }} onClick={() => setShowNew(true)}
-            className="bg-white rounded-xl px-3.5 py-2 shadow-sm-apple flex items-center gap-1.5 border border-border-light">
-            <UserPlus size={14} className="text-accent" />
-            <span className="text-[12px] font-bold text-foreground">Nouveau</span>
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button whileTap={{ scale: 0.94 }} onClick={openGroupMsg}
+              className="rounded-xl px-3 py-2 flex items-center gap-1.5 text-white"
+              style={{
+                background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
+                boxShadow: "0 6px 16px rgba(91,79,233,0.28)",
+              }}>
+              <MessageSquare size={13} strokeWidth={2.6} />
+              <span className="text-[12px] font-bold">Groupe</span>
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.94 }} onClick={() => setShowNew(true)}
+              className="bg-white rounded-xl px-3.5 py-2 shadow-sm-apple flex items-center gap-1.5 border border-border-light">
+              <UserPlus size={14} className="text-accent" />
+              <span className="text-[12px] font-bold text-foreground">Nouveau</span>
+            </motion.button>
+          </div>
         </header>
 
         {/* Search */}
@@ -232,7 +326,7 @@ export default function ClientsPage() {
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un client..."
               className="flex-1 text-[14px] text-foreground placeholder:text-subtle bg-transparent outline-none" />
             <div className="relative">
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowSortMenu(!showSortMenu)}>
+              <motion.button whileTap={{ scale: 0.96 }} onClick={() => setShowSortMenu(!showSortMenu)}>
                 <SlidersHorizontal size={17} className={showSortMenu ? "text-accent" : "text-muted"} />
               </motion.button>
               {showSortMenu && (
@@ -260,7 +354,7 @@ export default function ClientsPage() {
 
         {/* Stats cards — both clickable */}
         <div className="px-6 pb-4 flex gap-3">
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowStats(true)}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowStats(true)}
             className="flex-1 bg-white rounded-2xl p-4 shadow-card-premium text-left">
             <p className="text-[9px] text-muted font-bold uppercase tracking-wider">Total clients</p>
             <div className="flex items-end gap-2 mt-1.5">
@@ -272,7 +366,7 @@ export default function ClientsPage() {
               )}
             </div>
           </motion.button>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => setShowNew(true)}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setShowNew(true)}
             className="flex-1 bg-accent-gradient rounded-2xl p-4 shadow-card-premium text-left relative overflow-hidden">
             <p className="text-[9px] text-white/70 font-bold uppercase tracking-wider">Nouveaux ce mois</p>
             <div className="flex items-end justify-between mt-1.5">
@@ -348,17 +442,7 @@ export default function ClientsPage() {
       {/* New client */}
       <Modal open={showNew} onClose={() => setShowNew(false)} title="Nouveau client">
         <div className="space-y-4">
-          {/* Optional photo upload */}
-          <div className="flex justify-center">
-            <motion.button whileTap={{ scale: 0.95 }} onClick={() => newPhotoInputRef.current?.click()}
-              className="w-20 h-20 rounded-full bg-border-light flex flex-col items-center justify-center gap-1 border-2 border-dashed border-border">
-              <Camera size={20} className="text-muted" />
-              <span className="text-[8px] text-muted font-bold">Photo</span>
-            </motion.button>
-            <input ref={newPhotoInputRef} type="file" accept="image/*" className="hidden"
-              onChange={(e) => {/* handled after creation */}} />
-          </div>
-
+          {/* Photo upload happens after creation from the client profile card */}
           <div className="grid grid-cols-2 gap-3">
             {[["Prénom", "firstName", "Marie"], ["Nom", "lastName", "Dupont"]].map(([label, key, ph]) => (
               <div key={key}>
@@ -379,7 +463,7 @@ export default function ClientsPage() {
             <label className="text-[12px] text-muted font-semibold mb-1.5 block">Catégorie</label>
             <div className="flex gap-2">
               {(["", "vip", "regular", "new"] as ClientTag[]).map((t) => (
-                <motion.button key={t} whileTap={{ scale: 0.9 }} onClick={() => setForm({ ...form, tag: t })}
+                <motion.button key={t} whileTap={{ scale: 0.96 }} onClick={() => setForm({ ...form, tag: t })}
                   className={`flex-1 py-2 rounded-xl text-[11px] font-bold transition-all ${
                     form.tag === t
                       ? t === "vip" ? "bg-warning text-white" : t === "regular" ? "bg-accent text-white" : t === "new" ? "bg-success text-white" : "bg-border text-foreground"
@@ -395,11 +479,271 @@ export default function ClientsPage() {
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
               placeholder="Optionnel..." rows={2} className="input-field resize-none" />
           </div>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={handleSubmit}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={handleSubmit}
             className="w-full bg-accent-gradient text-white py-3.5 rounded-2xl text-[14px] font-bold fab-shadow">
             Ajouter le client
           </motion.button>
         </div>
+      </Modal>
+
+      {/* Group messaging modal */}
+      <Modal
+        open={showGroupMsg}
+        onClose={() => setShowGroupMsg(false)}
+        title={groupStep === "compose" ? "Message groupé" : groupStep === "confirm" ? "Confirmer l'envoi" : "Message envoyé"}
+        size="large"
+      >
+        {groupStep === "compose" && (
+          <div className="space-y-4">
+            {/* Filter chips */}
+            <div>
+              <p className="text-[10px] text-muted font-bold uppercase tracking-wider mb-2">Filtrer les destinataires</p>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                {([
+                  ["all", "Tous"],
+                  ["vip", "VIP"],
+                  ["regular", "Réguliers"],
+                  ["new", "Nouveaux"],
+                  ["withEmail", "Avec email"],
+                ] as const).map(([key, label]) => {
+                  const active = groupFilter === key;
+                  return (
+                    <motion.button
+                      key={key}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => setGroupFilter(key)}
+                      className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap"
+                      style={
+                        active
+                          ? {
+                              background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
+                              color: "white",
+                              boxShadow: "0 4px 12px rgba(91,79,233,0.25)",
+                            }
+                          : { backgroundColor: "#F4F4F5", color: "#71717A" }
+                      }
+                    >
+                      {label}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selection summary + actions */}
+            <div className="bg-border-light rounded-xl p-3 flex items-center justify-between">
+              <div>
+                <p className="text-[13px] font-bold text-foreground">
+                  {groupSelected.size} sélectionné{groupSelected.size > 1 ? "s" : ""}
+                </p>
+                <p className="text-[10px] text-muted mt-0.5">
+                  {groupEligible.length} client{groupEligible.length > 1 ? "s" : ""} dans ce filtre
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={selectAllEligible}
+                  className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+                  style={{ color: "#5B4FE9", backgroundColor: "#EEF0FF" }}
+                >
+                  Tout cocher
+                </button>
+                {groupSelected.size > 0 && (
+                  <button
+                    onClick={clearSelection}
+                    className="text-[11px] font-bold text-muted px-3 py-1.5 rounded-lg bg-white border border-border-light"
+                  >
+                    Effacer
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Clients list with checkboxes */}
+            <div className="max-h-[260px] overflow-y-auto rounded-xl border border-border-light">
+              {groupEligible.length === 0 ? (
+                <p className="text-[12px] text-muted text-center py-8">Aucun client dans ce filtre.</p>
+              ) : (
+                groupEligible.map((c, i) => {
+                  const checked = groupSelected.has(c.id);
+                  const tag = getClientTag(c.notes);
+                  return (
+                    <motion.button
+                      key={c.id}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={() => toggleClientSelected(c.id)}
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-left ${i < groupEligible.length - 1 ? "border-b border-border-light" : ""}`}
+                      style={{ backgroundColor: checked ? "#EEF0FF" : "white" }}
+                    >
+                      <div
+                        className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: checked ? "#5B4FE9" : "white",
+                          border: checked ? "1.5px solid #5B4FE9" : "1.5px solid #D4D4D8",
+                        }}
+                      >
+                        {checked && <Check size={12} className="text-white" strokeWidth={3.2} />}
+                      </div>
+                      <ClientAvatar avatar={c.avatar} firstName={c.firstName} lastName={c.lastName} size={32} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-bold text-foreground truncate">
+                          {c.firstName} {c.lastName}
+                          {tag && TAG_CONFIG[tag] && (
+                            <span className={`ml-2 text-[8px] font-bold ${TAG_CONFIG[tag].color} ${TAG_CONFIG[tag].bg} px-1.5 py-0.5 rounded uppercase`}>
+                              {TAG_CONFIG[tag].label}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[10px] text-muted truncate flex items-center gap-1 mt-0.5">
+                          {c.email ? (
+                            <>
+                              <AtSign size={9} /> {c.email}
+                            </>
+                          ) : (
+                            "Pas d'email"
+                          )}
+                        </p>
+                      </div>
+                    </motion.button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Subject + message */}
+            <div>
+              <label className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Objet (optionnel)</label>
+              <input
+                value={groupSubject}
+                onChange={(e) => setGroupSubject(e.target.value)}
+                placeholder="Offre spéciale, nouveauté..."
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Message</label>
+              <textarea
+                value={groupMessage}
+                onChange={(e) => setGroupMessage(e.target.value)}
+                placeholder="Rédigez votre message. Il sera envoyé à tous les destinataires sélectionnés en copie cachée."
+                rows={5}
+                className="input-field resize-none"
+              />
+              <p className="text-[10px] text-muted mt-1.5">
+                {groupMessage.length} caractères — sera envoyé par email en copie cachée (BCC).
+              </p>
+            </div>
+
+            {/* CTA */}
+            <motion.button
+              whileTap={groupSelected.size > 0 && groupMessage.trim() ? { scale: 0.98 } : undefined}
+              onClick={() => (groupSelected.size > 0 && groupMessage.trim() ? setGroupStep("confirm") : undefined)}
+              disabled={groupSelected.size === 0 || !groupMessage.trim()}
+              className="w-full text-white py-3.5 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 disabled:opacity-40"
+              style={{
+                background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
+                boxShadow: groupSelected.size > 0 && groupMessage.trim() ? "0 10px 24px rgba(91,79,233,0.35)" : "none",
+              }}
+            >
+              <Send size={15} strokeWidth={2.6} />
+              Continuer ({groupSelected.size})
+            </motion.button>
+          </div>
+        )}
+
+        {groupStep === "confirm" && (
+          <div className="space-y-4">
+            <div
+              className="rounded-2xl p-4 flex items-start gap-3"
+              style={{
+                background: "linear-gradient(135deg, #EEF0FF, white)",
+                border: "1px solid #5B4FE9",
+              }}
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #5B4FE9, #3B30B5)" }}>
+                <Send size={16} className="text-white" strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-foreground">Prêt à envoyer</p>
+                <p className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                  {groupSelected.size} destinataire{groupSelected.size > 1 ? "s" : ""}
+                  {groupRecipientsWithEmail > 0 && ` — ${groupRecipientsWithEmail} avec email`}
+                  {groupRecipientsWithEmail < groupSelected.size && ` (${groupSelected.size - groupRecipientsWithEmail} sans email)`}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-border-light p-4">
+              {groupSubject && (
+                <>
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Objet</p>
+                  <p className="text-[13px] font-bold text-foreground mb-3">{groupSubject}</p>
+                </>
+              )}
+              <p className="text-[10px] text-muted font-bold uppercase tracking-wider">Message</p>
+              <p className="text-[12px] text-foreground mt-1 leading-relaxed whitespace-pre-wrap">{groupMessage}</p>
+            </div>
+
+            <div className="bg-warning-soft rounded-xl p-3 flex items-start gap-2.5">
+              <Sparkles size={13} className="text-warning mt-0.5 flex-shrink-0" />
+              <p className="text-[11px] text-foreground leading-relaxed">
+                Votre client email s'ouvrira avec les destinataires en copie cachée (BCC). Aucun client ne verra les autres adresses.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setGroupStep("compose")}
+                className="flex-1 bg-white border border-border rounded-2xl py-3.5 text-[13px] font-bold text-muted"
+              >
+                Retour
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={sendGroupMessage}
+                className="flex-1 text-white py-3.5 rounded-2xl text-[13px] font-bold flex items-center justify-center gap-2"
+                style={{
+                  background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
+                  boxShadow: "0 10px 24px rgba(91,79,233,0.35)",
+                }}
+              >
+                <Send size={14} strokeWidth={2.6} /> Envoyer
+              </motion.button>
+            </div>
+          </div>
+        )}
+
+        {groupStep === "sent" && (
+          <div className="py-2">
+            <div className="flex justify-center mb-4">
+              <motion.div
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 220, damping: 14 }}
+                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, #5B4FE9, #3B30B5)", boxShadow: "0 12px 32px rgba(91,79,233,0.4)" }}
+              >
+                <Check size={32} className="text-white" strokeWidth={3} />
+              </motion.div>
+            </div>
+            <h3 className="text-[18px] font-bold text-foreground text-center">Message envoyé !</h3>
+            <p className="text-[12px] text-muted text-center mt-2 leading-relaxed">
+              {groupSelected.size} destinataire{groupSelected.size > 1 ? "s" : ""} — archivé dans votre historique.
+            </p>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowGroupMsg(false)}
+              className="w-full mt-5 text-white py-3.5 rounded-2xl text-[14px] font-bold"
+              style={{
+                background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
+                boxShadow: "0 10px 24px rgba(91,79,233,0.35)",
+              }}
+            >
+              Fermer
+            </motion.button>
+          </div>
+        )}
       </Modal>
 
       {/* Stats breakdown modal */}
@@ -435,7 +779,7 @@ export default function ClientsPage() {
               <div className="flex items-center gap-4">
                 <div className="relative flex-shrink-0">
                   <ClientAvatar avatar={selected.avatar} firstName={selected.firstName} lastName={selected.lastName} size={64} />
-                  <motion.button whileTap={{ scale: 0.85 }}
+                  <motion.button whileTap={{ scale: 0.95 }}
                     onClick={() => photoInputRef.current?.click()}
                     className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-accent flex items-center justify-center shadow-sm border-2 border-white">
                     <Camera size={11} className="text-white" />
@@ -462,7 +806,7 @@ export default function ClientsPage() {
               </div>
 
               {/* Edit button */}
-              <motion.button whileTap={{ scale: 0.97 }} onClick={openEdit}
+              <motion.button whileTap={{ scale: 0.98 }} onClick={openEdit}
                 className="w-full bg-border-light rounded-xl py-2.5 flex items-center justify-center gap-2 text-[13px] font-bold text-accent">
                 <Edit3 size={14} /> Modifier les informations
               </motion.button>
@@ -472,7 +816,7 @@ export default function ClientsPage() {
                 <p className="text-[11px] text-muted font-bold mb-2 flex items-center gap-1"><Tag size={10} /> Catégorie</p>
                 <div className="flex gap-1.5">
                   {(["", "vip", "regular", "new"] as ClientTag[]).map((t) => (
-                    <motion.button key={t} whileTap={{ scale: 0.9 }} onClick={() => setClientTag(selected.id, t)}
+                    <motion.button key={t} whileTap={{ scale: 0.96 }} onClick={() => setClientTag(selected.id, t)}
                       className={`flex-1 py-2 rounded-xl text-[10px] font-bold transition-all ${
                         tag === t
                           ? t === "vip" ? "bg-warning text-white" : t === "regular" ? "bg-accent text-white" : t === "new" ? "bg-success text-white" : "bg-border text-foreground"
@@ -583,19 +927,19 @@ export default function ClientsPage() {
                               {/* Controls */}
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex items-center gap-2">
-                                  <motion.button whileTap={{ scale: 0.85 }}
+                                  <motion.button whileTap={{ scale: 0.95 }}
                                     onClick={() => updateLoyaltyCard(card.id, { progress: Math.max(0, card.progress - 1) })}
                                     className="w-8 h-8 rounded-lg bg-border-light flex items-center justify-center">
                                     <Minus size={13} className="text-muted" />
                                   </motion.button>
                                   <span className="text-[14px] font-bold text-foreground w-10 text-center">{effectiveProgress}</span>
-                                  <motion.button whileTap={{ scale: 0.85 }}
+                                  <motion.button whileTap={{ scale: 0.95 }}
                                     onClick={() => updateLoyaltyCard(card.id, { progress: card.progress + 1 })}
                                     className="w-8 h-8 rounded-lg bg-accent text-white flex items-center justify-center">
                                     <Plus size={13} />
                                   </motion.button>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.9 }}
+                                <motion.button whileTap={{ scale: 0.96 }}
                                   onClick={() => { navigator.clipboard.writeText(card.code); setCardCopied(card.code); setTimeout(() => setCardCopied(null), 2000); }}
                                   className={`text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 ${cardCopied === card.code ? "bg-success text-white" : "bg-border-light text-muted"}`}>
                                   {cardCopied === card.code ? <><Check size={10} /> Copié</> : <><Copy size={10} /> Code</>}
@@ -639,59 +983,29 @@ export default function ClientsPage() {
                 )}
               </div>
 
-              {/* Timeline tabs */}
+              {/* Unified timeline */}
               <div>
-                <div className="segment-control mb-3">
-                  <button onClick={() => setProfileTab("history")} className={`segment-btn flex-1 ${profileTab === "history" ? "segment-btn-active" : ""}`}>
-                    RDV ({selAppts.length})
-                  </button>
-                  <button onClick={() => setProfileTab("payments")} className={`segment-btn flex-1 ${profileTab === "payments" ? "segment-btn-active" : ""}`}>
-                    Paiements ({selInvoices.length})
-                  </button>
-                </div>
-                {profileTab === "history" && (
-                  selAppts.length === 0 ? <p className="text-[13px] text-subtle text-center py-6">Aucun rendez-vous</p> : (
-                    <div className="space-y-2">
-                      {selAppts.slice(0, 10).map((a) => (
-                        <div key={a.id} className="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm-apple">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${a.status === "done" ? "bg-success-soft" : a.status === "canceled" ? "bg-danger-soft" : "bg-accent-soft"}`}>
-                              {a.status === "done" ? <CheckCircle2 size={15} className="text-success" /> : a.status === "canceled" ? <XCircle size={15} className="text-danger" /> : <Clock size={15} className="text-accent" />}
-                            </div>
-                            <div>
-                              <p className="text-[13px] font-semibold text-foreground">{a.title}</p>
-                              <p className="text-[11px] text-muted">{new Date(a.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · {a.time}</p>
-                            </div>
-                          </div>
-                          {a.price > 0 && <p className="text-[13px] font-bold text-foreground">{a.price} €</p>}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                )}
-                {profileTab === "payments" && (
-                  selInvoices.length === 0 ? <p className="text-[13px] text-subtle text-center py-6">Aucun paiement</p> : (
-                    <div className="space-y-2">
-                      {selInvoices.map((inv) => (
-                        <div key={inv.id} className="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm-apple">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${inv.status === "paid" ? "bg-success-soft" : "bg-warning-soft"}`}>
-                              {inv.status === "paid" ? <CheckCircle2 size={15} className="text-success" /> : <Clock size={15} className="text-warning" />}
-                            </div>
-                            <div>
-                              <p className="text-[13px] font-semibold text-foreground">{inv.description}</p>
-                              <p className="text-[11px] text-muted">{new Date(inv.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</p>
-                            </div>
-                          </div>
-                          <p className={`text-[14px] font-bold ${inv.status === "paid" ? "text-success" : "text-warning"}`}>{inv.amount} €</p>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                )}
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 px-1">
+                  Historique complet
+                </p>
+                <ClientTimeline
+                  clientId={selected.id}
+                  appointments={appointments}
+                  invoices={invoices}
+                  createdAt={selected.createdAt}
+                />
               </div>
 
-              <button onClick={() => { deleteClient(selected.id); setSelectedId(null); }}
+              <button onClick={() => {
+                const snap = { ...selected };
+                deleteClient(selected.id);
+                setSelectedId(null);
+                import("@/components/UndoToast").then(({ showUndoToast }) => {
+                  showUndoToast(`${snap.firstName} ${snap.lastName} supprimé`, () => {
+                    addClient({ firstName: snap.firstName, lastName: snap.lastName, phone: snap.phone, email: snap.email, notes: snap.notes });
+                  });
+                });
+              }}
                 className="w-full text-danger text-[12px] py-2.5 flex items-center justify-center gap-1.5 opacity-40 hover:opacity-60 transition-opacity">
                 <Trash2 size={12} /> Supprimer ce client
               </button>
@@ -708,7 +1022,7 @@ export default function ClientsPage() {
             <div className="flex justify-center">
               <div className="relative">
                 <ClientAvatar avatar={selected.avatar} firstName={selected.firstName} lastName={selected.lastName} size={80} />
-                <motion.button whileTap={{ scale: 0.85 }}
+                <motion.button whileTap={{ scale: 0.95 }}
                   onClick={() => photoInputRef.current?.click()}
                   className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-accent flex items-center justify-center shadow-sm border-2 border-white">
                   <Camera size={13} className="text-white" />
@@ -741,7 +1055,7 @@ export default function ClientsPage() {
                 type="email" className="input-field" />
             </div>
 
-            <motion.button whileTap={{ scale: 0.97 }} onClick={handleEditSave}
+            <motion.button whileTap={{ scale: 0.98 }} onClick={handleEditSave}
               className="w-full bg-accent-gradient text-white py-3.5 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 fab-shadow">
               <Save size={16} /> Enregistrer
             </motion.button>

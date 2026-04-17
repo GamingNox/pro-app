@@ -9,6 +9,7 @@ import {
   TrendingUp, CheckCircle2, Gift, Star,
 } from "lucide-react";
 import { PLAN_NAMES, PLAN_PRICES, type PlanTier } from "@/lib/types";
+import { redeemGiftCode } from "@/lib/giftCodes";
 
 // ── Plan definitions ────────────────────────────────────
 const PLANS: {
@@ -20,46 +21,46 @@ const PLANS: {
   cta: string;
 }[] = [
   {
-    id: "essentiel", icon: Zap, tagline: "Pour démarrer", popular: false,
+    id: "essentiel", icon: Zap, tagline: "Pour demarrer", popular: false,
     features: [
-      { text: "15 clients maximum", ok: true },
-      { text: "30 RDV / mois", ok: true },
-      { text: "Tableau de bord", ok: true },
-      { text: "Page de réservation", ok: true },
-      { text: "Support email", ok: true },
-      { text: "Gestion de stock", ok: false },
-      { text: "Suivi financier", ok: false },
-      { text: "Programme fidélité", ok: false },
+      { text: "Ajoutez jusqu'a 15 clients", ok: true },
+      { text: "30 rendez-vous par mois", ok: true },
+      { text: "Tableau de bord avec CA du jour", ok: true },
+      { text: "Page de reservation publique", ok: true },
+      { text: "Support par email (48h)", ok: true },
+      { text: "Gestion de stock et inventaire", ok: false },
+      { text: "Factures et suivi des paiements", ok: false },
+      { text: "Cartes de fidelite clients", ok: false },
     ],
     cta: "Plan actuel",
   },
   {
     id: "croissance", icon: TrendingUp, tagline: "Le plus populaire", popular: true,
     features: [
-      { text: "Clients illimités", ok: true },
-      { text: "RDV illimités", ok: true },
-      { text: "Tableau de bord complet", ok: true },
-      { text: "Gestion de stock", ok: true },
-      { text: "Suivi financier complet", ok: true },
-      { text: "Programme fidélité", ok: true },
-      { text: "Rapports PDF", ok: true },
-      { text: "Rappels automatiques", ok: true },
+      { text: "Clients illimites, sans restriction", ok: true },
+      { text: "Rendez-vous illimites", ok: true },
+      { text: "Statistiques avancees (CA, taux, tendances)", ok: true },
+      { text: "Gestion de stock avec alertes automatiques", ok: true },
+      { text: "Factures PDF + suivi des paiements", ok: true },
+      { text: "Programme fidelite (cartes + recompenses)", ok: true },
+      { text: "Rappels SMS et email automatises", ok: true },
+      { text: "Export comptable mensuel", ok: true },
     ],
-    cta: "Commencer l'essai gratuit",
+    cta: "Essai gratuit 14 jours",
   },
   {
-    id: "entreprise", icon: Crown, tagline: "Puissance maximale", popular: false,
+    id: "entreprise", icon: Crown, tagline: "Pour les equipes", popular: false,
     features: [
-      { text: "Tout du plan Pro", ok: true },
-      { text: "Intégrations avancées", ok: true },
-      { text: "Support prioritaire", ok: true },
-      { text: "Branding personnalisé", ok: true },
-      { text: "Accès API complet", ok: true },
-      { text: "Multi-collaborateurs", ok: true },
-      { text: "Account Manager dédié", ok: true },
-      { text: "SLA garanti 99.9%", ok: true },
+      { text: "Tout le plan Croissance inclus", ok: true },
+      { text: "Jusqu'a 5 collaborateurs", ok: true },
+      { text: "Support prioritaire (reponse < 4h)", ok: true },
+      { text: "Page de reservation personnalisee (logo, couleurs)", ok: true },
+      { text: "Acces API pour integrations externes", ok: true },
+      { text: "Promotions automatisees (10/mois)", ok: true },
+      { text: "Rapports financiers detailles", ok: true },
+      { text: "Disponibilite garantie 99.9%", ok: true },
     ],
-    cta: "Passer au Elite",
+    cta: "Passer au plan Entreprise",
   },
 ];
 
@@ -68,6 +69,11 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const currentPlan = user.plan || "essentiel";
   const [showConfirm, setShowConfirm] = useState<PlanTier | null>(null);
+
+  // Gift code redemption
+  const [giftCode, setGiftCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
+  const [giftResult, setGiftResult] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   function handleSelectPlan(planId: PlanTier) {
     if (planId === currentPlan) return;
@@ -80,13 +86,32 @@ export default function SubscriptionPage() {
     setShowConfirm(null);
   }
 
+  async function handleRedeemCode() {
+    if (!giftCode.trim() || redeeming) return;
+    setRedeeming(true);
+    setGiftResult(null);
+    const userId = user.email || "client-user";
+    const result = await redeemGiftCode(giftCode, userId);
+    if (result) {
+      const msg = result.rewardType === "free_month"
+        ? `${result.rewardValue} mois offert${result.rewardValue > 1 ? "s" : ""} applique !`
+        : `Reduction de ${result.rewardValue}% appliquee !`;
+      setGiftResult({ type: "success", msg });
+      setGiftCode("");
+    } else {
+      setGiftResult({ type: "error", msg: "Code invalide, expire ou deja utilise." });
+    }
+    setRedeeming(false);
+    setTimeout(() => setGiftResult(null), 3500);
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
       {/* Header */}
       <div className="flex-shrink-0 px-6 pt-5 pb-3">
         <div className="flex items-center gap-3 mb-1">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center">
+          <motion.button whileTap={{ scale: 0.96 }} onClick={() => router.back()}
+            className="w-10 h-10 rounded-xl bg-white flex items-center justify-center" style={{ border: "1px solid #E4E4E7", boxShadow: "0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" }}>
             <ArrowLeft size={17} className="text-foreground" />
           </motion.button>
           <div>
@@ -124,7 +149,8 @@ export default function SubscriptionPage() {
           {/* Free trial CTA — only for free plan users */}
           {currentPlan === "essentiel" && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-accent-gradient rounded-2xl p-5 text-white mb-5 relative overflow-hidden">
+              className="rounded-2xl p-5 text-white mb-5 relative overflow-hidden"
+              style={{ background: "linear-gradient(135deg, #5B4FE9 0%, #3B30B5 100%)", boxShadow: "0 10px 28px rgba(91, 79, 233, 0.35)" }}>
               {/* Decorative sparkles */}
               <div className="absolute top-3 right-3 opacity-20"><Sparkles size={40} /></div>
               <div className="absolute bottom-2 right-10 opacity-10"><Star size={24} /></div>
@@ -134,18 +160,71 @@ export default function SubscriptionPage() {
                   <Gift size={20} className="text-white" />
                   <p className="text-[17px] font-bold">1 mois d&apos;essai gratuit</p>
                 </div>
-                <p className="text-[13px] text-white/75 leading-relaxed">
-                  Essayez le plan Pro avec toutes les fonctionnalités. Sans engagement.
+                <p className="text-[13px] text-white/85 leading-relaxed">
+                  Essayez le plan Pro avec toutes les fonctionnalites. Sans engagement.
                 </p>
-                <p className="text-[11px] text-white/50 mt-1">Annulable à tout moment.</p>
+                <p className="text-[11px] text-white/70 mt-1">Annulable a tout moment.</p>
 
-                <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleSelectPlan("croissance")}
-                  className="mt-4 bg-white text-accent py-3 rounded-xl text-[14px] font-bold text-center w-full shadow-sm">
-                  Démarrer l&apos;essai gratuit
+                <motion.button whileTap={{ scale: 0.98 }} onClick={() => handleSelectPlan("croissance")}
+                  className="mt-4 bg-white py-3 rounded-xl text-[14px] font-bold text-center w-full shadow-sm"
+                  style={{ color: "#3B30B5" }}>
+                  Demarrer l&apos;essai gratuit
                 </motion.button>
               </div>
             </motion.div>
           )}
+
+          {/* ═══ GIFT CODE REDEMPTION ═══ */}
+          <div className="rounded-2xl p-5 mb-5 shadow-card-premium relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #F3F0FF 0%, #EEF0FF 100%)", border: "1px solid #E0DCFF" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #8B5CF6, #6D28D9)", boxShadow: "0 4px 12px rgba(139, 92, 246, 0.35)" }}>
+                <Gift size={15} className="text-white" strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: "#6D28D9" }}>Premium</p>
+                <p className="text-[14px] font-bold" style={{ color: "#3B30B5" }}>Vous avez un code cadeau ?</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={giftCode}
+                onChange={(e) => setGiftCode(e.target.value.toUpperCase())}
+                placeholder="GIFT-XXXXXX"
+                disabled={redeeming}
+                className="flex-1 bg-white rounded-xl px-4 py-3 text-[13px] font-bold tracking-wider text-foreground placeholder:text-subtle outline-none"
+                style={{ border: "1px solid rgba(139, 92, 246, 0.25)" }}
+              />
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={handleRedeemCode}
+                disabled={!giftCode.trim() || redeeming}
+                className="px-5 rounded-xl text-[13px] font-bold text-white flex-shrink-0"
+                style={{
+                  background: giftCode.trim() && !redeeming ? "linear-gradient(135deg, #8B5CF6, #6D28D9)" : "#E4E4E7",
+                  color: giftCode.trim() && !redeeming ? "white" : "#A1A1AA",
+                  boxShadow: giftCode.trim() && !redeeming ? "0 4px 12px rgba(139, 92, 246, 0.35)" : undefined,
+                }}
+              >
+                {redeeming ? "..." : "Valider"}
+              </motion.button>
+            </div>
+            <AnimatePresence>
+              {giftResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className={`mt-3 px-3 py-2 rounded-lg text-[11px] font-bold flex items-center gap-2 ${
+                    giftResult.type === "success" ? "bg-success-soft text-success" : "bg-danger-soft text-danger"
+                  }`}
+                >
+                  {giftResult.type === "success" ? <CheckCircle2 size={12} /> : <X size={12} />}
+                  {giftResult.msg}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Plans header */}
           <h2 className="text-[18px] font-bold text-foreground mb-4">Plans Disponibles</h2>
@@ -199,16 +278,23 @@ export default function SubscriptionPage() {
                     </div>
                   </div>
 
-                  {/* CTA */}
+                  {/* CTA — indigo for paid/upgrade plans, neutral for current */}
                   <div className="px-5 pb-5">
-                    <motion.button whileTap={{ scale: 0.97 }}
+                    <motion.button whileTap={{ scale: 0.98 }}
                       onClick={() => handleSelectPlan(plan.id)}
                       disabled={isCurrent}
-                      className={`w-full py-3.5 rounded-xl text-[13px] font-bold text-center transition-all ${
-                        isCurrent ? "bg-border-light text-muted"
-                        : plan.popular ? "bg-accent text-white fab-shadow"
-                        : "bg-white border-2 border-border text-foreground hover:border-accent"
-                      }`}>
+                      className="w-full py-3.5 rounded-xl text-[13px] font-bold text-center transition-all"
+                      style={
+                        isCurrent
+                          ? { backgroundColor: "var(--color-border-light)", color: "var(--color-muted)" }
+                          : plan.id === "essentiel"
+                          ? { backgroundColor: "white", color: "var(--color-foreground)", border: "2px solid var(--color-border)" }
+                          : {
+                              background: "linear-gradient(135deg, #5B4FE9 0%, #3B30B5 100%)",
+                              color: "white",
+                              boxShadow: "0 4px 14px rgba(91, 79, 233, 0.35), 0 1px 3px rgba(91, 79, 233, 0.18)",
+                            }
+                      }>
                       {isCurrent ? "Plan actuel" : plan.popular ? "Commencer l'essai gratuit" : plan.cta}
                     </motion.button>
                   </div>
@@ -228,7 +314,7 @@ export default function SubscriptionPage() {
             </div>
             <div className="flex-1">
               <p className="text-[12px] font-bold text-foreground">+2 000 professionnels</p>
-              <p className="text-[10px] text-muted">font confiance à Lumière Pro</p>
+              <p className="text-[10px] text-muted">font confiance à Client Base</p>
             </div>
             <div className="flex gap-0.5">{[1,2,3,4,5].map((i) => <Star key={i} size={10} className="text-warning fill-warning" />)}</div>
           </div>
@@ -247,7 +333,7 @@ export default function SubscriptionPage() {
         {showConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center" onClick={() => setShowConfirm(null)}>
-            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+            <motion.div initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }}
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-t-[28px] w-full max-w-lg p-6 pb-10">
               <div className="w-10 h-1 rounded-full bg-border mx-auto mb-5" />
@@ -262,7 +348,7 @@ export default function SubscriptionPage() {
                     : "Vous serez facturé 19,99€ / mois. Annulable à tout moment."}
                 </p>
               </div>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={confirmPlan}
+              <motion.button whileTap={{ scale: 0.98 }} onClick={confirmPlan}
                 className="w-full bg-accent text-white py-4 rounded-2xl text-[15px] font-bold fab-shadow">
                 Confirmer le changement
               </motion.button>

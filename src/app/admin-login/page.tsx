@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { Shield, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
+import { Shield, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ArrowLeft } from "lucide-react";
 
 // Simple hash for credential check — not stored in plain text
 function simpleHash(str: string): string {
@@ -33,8 +33,28 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="h-full h-[100dvh] flex flex-col items-center justify-center max-w-lg mx-auto bg-background px-8">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+    <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto bg-background px-8 relative">
+      {/* Back button — always visible top left */}
+      <div className="flex-shrink-0 pt-5">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            try { sessionStorage.setItem("skip-onboarding-slides", "1"); } catch {}
+            router.push("/onboarding");
+          }}
+          className="flex items-center gap-2 bg-white rounded-xl px-4 py-2.5"
+          style={{
+            border: "1px solid #E4E4E7",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+          }}
+        >
+          <ArrowLeft size={16} className="text-foreground" strokeWidth={2.4} />
+          <span className="text-[13px] font-bold text-foreground">Retour</span>
+        </motion.button>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center">
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="w-full">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-accent-soft flex items-center justify-center mb-4">
@@ -69,12 +89,13 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          <motion.button whileTap={{ scale: 0.97 }} onClick={handleLogin}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={handleLogin}
             className="w-full bg-accent-gradient text-white py-4 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2 fab-shadow">
             Connexion admin <ArrowRight size={18} />
           </motion.button>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 }

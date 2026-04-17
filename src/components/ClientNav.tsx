@@ -1,10 +1,11 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { CalendarDays, CreditCard, Home, Tag, User } from "lucide-react";
-import { spring } from "@/lib/motion";
+import { spring, tap } from "@/lib/motion";
 
 const tabs = [
   { href: "/reservations", label: "RÉSERVATIONS", icon: CalendarDays },
@@ -14,7 +15,7 @@ const tabs = [
   { href: "/account", label: "PROFIL", icon: User },
 ];
 
-export default function ClientNav() {
+export default memo(function ClientNav() {
   const pathname = usePathname();
 
   return (
@@ -27,8 +28,8 @@ export default function ClientNav() {
           if (tab.center) {
             return (
               <Link key={tab.href} href={tab.href} className="relative flex items-center justify-center -mt-4 w-16 pb-2.5">
-                <motion.div whileTap={{ scale: 0.88 }} transition={spring.snappy}
-                  className={`w-[54px] h-[54px] rounded-[18px] flex items-center justify-center transition-all duration-300 ${isActive ? "bg-accent-gradient fab-shadow" : "bg-border-light shadow-apple"}`}>
+                <motion.div whileTap={{ scale: 0.93 }} transition={spring.snappy}
+                  className={`w-[54px] h-[54px] rounded-[18px] flex items-center justify-center transition-all duration-150 ${isActive ? "bg-accent-gradient fab-shadow" : "bg-border-light shadow-apple"}`}>
                   <Icon size={22} strokeWidth={1.8} className={isActive ? "text-white" : "text-muted"} />
                 </motion.div>
               </Link>
@@ -36,12 +37,12 @@ export default function ClientNav() {
           }
 
           return (
-            <Link key={tab.href} href={tab.href} className="flex flex-col items-center justify-end gap-1 w-14 relative pb-2.5 pt-2.5">
-              <motion.div whileTap={{ scale: 0.85 }} transition={spring.snappy}>
+            <Link key={tab.href} href={tab.href} className="flex flex-col items-center justify-center gap-1 w-14 relative pb-3 pt-1">
+              <motion.div whileTap={tap.icon} transition={spring.snappy}>
                 <Icon size={21} strokeWidth={isActive ? 2 : 1.5}
-                  className={`transition-colors duration-200 ${isActive ? "text-accent" : "text-muted"}`} />
+                  className={`transition-colors duration-150 ${isActive ? "text-accent" : "text-muted"}`} />
               </motion.div>
-              <span className={`text-[7px] leading-none tracking-wider transition-all duration-200 ${
+              <span className={`text-[7px] leading-none tracking-wider transition-all duration-150 ${
                 isActive ? "text-accent font-bold" : "text-muted font-medium"
               }`}>
                 {tab.label}
@@ -57,4 +58,4 @@ export default function ClientNav() {
       </div>
     </nav>
   );
-}
+});

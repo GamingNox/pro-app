@@ -3,17 +3,25 @@
 import { type ReactNode } from "react";
 import { useApp } from "@/lib/store";
 import { hasAccess, requiredPlan, PLAN_NAMES, type Feature } from "@/lib/types";
-import { Lock } from "lucide-react";
-import Link from "next/link";
+import { Sparkles } from "lucide-react";
+import { PremiumLockContent } from "./PremiumLockScreen";
 
 interface FeatureGateProps {
   feature: Feature;
   children: ReactNode;
-  /** If true, renders children but with an overlay lock. If false (default), replaces entirely. */
+  /** If true (default), renders the rich premium lock screen instead of children. */
   showLocked?: boolean;
 }
 
-/** Wraps a feature. If the user's plan doesn't include it, shows a lock UI instead. */
+/**
+ * Wraps a feature. If the user's plan doesn't include it:
+ *  - showLocked=true (default) → renders the full PremiumLockContent (hero + showcase + benefits)
+ *  - showLocked=false → renders nothing
+ * If the user has access, renders children.
+ *
+ * This is used for sub-sections (e.g., tabs inside Gestion page). For full standalone
+ * locked pages, use PremiumLockScreen directly.
+ */
 export default function FeatureGate({ feature, children, showLocked = true }: FeatureGateProps) {
   const { user } = useApp();
   const plan = user.plan || "essentiel";
@@ -22,32 +30,13 @@ export default function FeatureGate({ feature, children, showLocked = true }: Fe
     return <>{children}</>;
   }
 
-  const needed = requiredPlan(feature);
-  const planName = PLAN_NAMES[needed];
-
   if (!showLocked) return null;
 
-  return (
-    <div className="relative">
-      <div className="opacity-40 pointer-events-none select-none">{children}</div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Link href="/subscription">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-2.5 border border-border-light">
-            <div className="w-7 h-7 rounded-lg bg-accent-soft flex items-center justify-center">
-              <Lock size={13} className="text-accent" />
-            </div>
-            <div>
-              <p className="text-[11px] font-bold text-foreground">Plan {planName}</p>
-              <p className="text-[9px] text-accent font-bold">Passer au plan &rarr;</p>
-            </div>
-          </div>
-        </Link>
-      </div>
-    </div>
-  );
+  // Full-replacement rich premium content (no overlay, no dimmed children)
+  return <PremiumLockContent feature={feature} />;
 }
 
-/** Inline lock badge for menu items */
+/** Inline premium badge for menu items. Uses brand indigo. */
 export function LockBadge({ feature }: { feature: Feature }) {
   const { user } = useApp();
   const plan = user.plan || "essentiel";
@@ -57,8 +46,11 @@ export function LockBadge({ feature }: { feature: Feature }) {
   const needed = requiredPlan(feature);
 
   return (
-    <span className="text-[8px] font-bold text-accent bg-accent-soft px-1.5 py-0.5 rounded uppercase tracking-wider">
-      {PLAN_NAMES[needed]}
+    <span
+      className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-0.5"
+      style={{ background: "#EEF0FF", color: "#3B30B5" }}
+    >
+      <Sparkles size={7} /> {PLAN_NAMES[needed]}
     </span>
   );
 }

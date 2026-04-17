@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/store";
 import { getInitials } from "@/lib/data";
 import Modal from "@/components/Modal";
 import {
   Plus,
   ChevronLeft,
+  ChevronDown,
   ChevronRight,
   CheckCircle2,
   XCircle,
@@ -18,6 +19,8 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import type { AppointmentStatus } from "@/lib/types";
+import { tabContentVariants, tabContentTransition } from "@/lib/motion";
+import { CATEGORIES } from "@/lib/categories";
 
 const DAYS_SHORT = ["L", "M", "M", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -77,6 +80,44 @@ export default function AppointmentsPage() {
   }, [searchParams]);
 
   const weekDays = useMemo(() => getWeekDays(weekBase), [weekBase]);
+
+  // ── Infinite timeline ────────────────────────────────────
+  // Continuous horizontal list of days (±60 days from today) that replaces
+  // the 7-day week strip. The selected day auto-scrolls into view.
+  const [timelineRange, setTimelineRange] = useState({ before: 60, after: 60 });
+  const timelineDays = useMemo<Date[]>(() => {
+    const list: Date[] = [];
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+    for (let i = -timelineRange.before; i <= timelineRange.after; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      list.push(d);
+    }
+    return list;
+  }, [timelineRange]);
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll the selected date into the center of the timeline whenever it changes
+  useEffect(() => {
+    const container = timelineRef.current;
+    if (!container) return;
+    const selector = `[data-date="${fmt(selectedDate)}"]`;
+    const el = container.querySelector<HTMLElement>(selector);
+    if (!el) return;
+    const target = el.offsetLeft - container.clientWidth / 2 + el.clientWidth / 2;
+    container.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  }, [selectedDate, timelineDays.length]);
+
+  // Lazy-extend the range when user scrolls near either edge
+  function handleTimelineScroll() {
+    const container = timelineRef.current;
+    if (!container) return;
+    const nearLeft = container.scrollLeft < 200;
+    const nearRight = container.scrollLeft + container.clientWidth > container.scrollWidth - 200;
+    if (nearLeft) setTimelineRange((r) => ({ ...r, before: r.before + 30 }));
+    else if (nearRight) setTimelineRange((r) => ({ ...r, after: r.after + 30 }));
+  }
   const today = fmt(new Date());
   const selectedStr = fmt(selectedDate);
 
@@ -159,7 +200,8 @@ export default function AppointmentsPage() {
      * The layout already provides flex-1 to children, so this creates
      * the constraint chain: layout -> page -> fixed header + scrollable body.
      */
-    <div className="flex-1 flex flex-col overflow-hidden relative bg-background">
+    <div className="flex-1 flex flex-col overflow-hidden relative bg-background"
+      style={{ ["--color-accent" as string]: CATEGORIES.bookings.color, ["--color-accent-soft" as string]: CATEGORIES.bookings.soft, ["--color-accent-deep" as string]: CATEGORIES.bookings.deep } as React.CSSProperties}>
 
       {/* ═══ FIXED HEADER (never scrolls) ═══ */}
       <div className="flex-shrink-0">
@@ -169,7 +211,7 @@ export default function AppointmentsPage() {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-[22px] font-bold text-foreground tracking-tight">Rendez-vous</h1>
             <div className="relative">
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowFilter(!showFilter)}
+              <motion.button whileTap={{ scale: 0.96 }} onClick={() => setShowFilter(!showFilter)}
                 className="w-9 h-9 rounded-xl bg-white shadow-sm-apple flex items-center justify-center">
                 <SlidersHorizontal size={16} className="text-muted" />
               </motion.button>
@@ -206,16 +248,33 @@ export default function AppointmentsPage() {
           </div>
         </header>
 
-        {/* Date display + arrows */}
+        {/* Date display + arrows — tappable to open native date picker */}
         <div className="px-6 pb-2">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-[18px] font-bold text-foreground">{dayLabel}</h2>
-            <div className="flex items-center gap-1">
-              <motion.button whileTap={{ scale: 0.85 }} onClick={prevDay}
+            <label className="relative cursor-pointer flex items-center gap-1.5">
+              <h2 className="text-[18px] font-bold text-foreground hover:text-accent transition-colors">{dayLabel}</h2>
+              <ChevronDown size={14} className="text-muted" />
+              {/* Hidden native date input — opens OS picker on click */}
+              <input
+                type="date"
+                value={selectedStr}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return;
+                  const [y, m, d] = v.split("-").map(Number);
+                  const next = new Date(y, m - 1, d);
+                  setSelectedDate(next);
+                  setWeekBase(next);
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </label>
+            <div className="flex items-center gap-1 ml-auto">
+              <motion.button whileTap={{ scale: 0.95 }} onClick={prevDay}
                 className="w-7 h-7 rounded-lg bg-white shadow-sm-apple flex items-center justify-center">
                 <ChevronLeft size={14} className="text-muted" />
               </motion.button>
-              <motion.button whileTap={{ scale: 0.85 }} onClick={nextDay}
+              <motion.button whileTap={{ scale: 0.95 }} onClick={nextDay}
                 className="w-7 h-7 rounded-lg bg-white shadow-sm-apple flex items-center justify-center">
                 <ChevronRight size={14} className="text-muted" />
               </motion.button>
@@ -232,25 +291,33 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        {/* Day strip — subtle grey background for visual separation */}
-        <div className="px-4 pb-3 pt-1 mx-4 mb-1 bg-white/60 rounded-2xl">
-          <div className="flex justify-between">
-            {weekDays.map((d, i) => {
+        {/* Infinite timeline — continuous horizontal scroll of days */}
+        <div
+          ref={timelineRef}
+          onScroll={handleTimelineScroll}
+          className="mx-4 mb-1 bg-white/60 rounded-2xl overflow-x-auto overscroll-x-contain no-scrollbar"
+          style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}
+        >
+          <div className="flex items-center py-3 px-2" style={{ minWidth: "100%" }}>
+            {timelineDays.map((d) => {
               const ds = fmt(d);
               const isSelected = ds === selectedStr;
               const isToday = ds === today;
               const count = dayCounts[ds] || 0;
+              const isMonthStart = d.getDate() === 1;
               return (
                 <motion.button
-                  key={i}
-                  whileTap={{ scale: 0.9 }}
+                  key={ds}
+                  data-date={ds}
+                  whileTap={{ scale: 0.94 }}
                   onClick={() => setSelectedDate(d)}
-                  className="flex-1 flex flex-col items-center py-2"
+                  className="flex-shrink-0 flex flex-col items-center py-1 px-1"
+                  style={{ width: "46px" }}
                 >
-                  <span className={`text-[11px] font-semibold mb-1.5 ${isSelected ? "text-accent" : "text-muted"}`}>
-                    {DAYS_SHORT[i]}
+                  <span className={`text-[10px] font-semibold mb-1 ${isSelected ? "text-accent" : "text-muted"}`}>
+                    {DAYS_SHORT[(d.getDay() + 6) % 7]}
                   </span>
-                  <div className={`w-[38px] h-[38px] rounded-full flex items-center justify-center text-[15px] font-bold transition-all duration-200 relative ${
+                  <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-[14px] font-bold transition-all duration-150 ${
                     isSelected
                       ? "bg-accent text-white shadow-sm"
                       : isToday
@@ -259,10 +326,15 @@ export default function AppointmentsPage() {
                   }`}>
                     {d.getDate()}
                   </div>
-                  {count > 0 && (
-                    <div className={`mt-1 w-1.5 h-1.5 rounded-full ${isSelected ? "bg-accent" : "bg-accent/40"}`} />
+                  {/* Month marker on day 1 */}
+                  {isMonthStart && (
+                    <span className="text-[8px] font-bold uppercase tracking-wider text-accent mt-0.5">
+                      {MONTHS[d.getMonth()].slice(0, 3)}
+                    </span>
                   )}
-                  {count === 0 && <div className="mt-1 w-1.5 h-1.5" />}
+                  {!isMonthStart && (
+                    <span className={`mt-0.5 w-1 h-1 rounded-full ${count > 0 ? (isSelected ? "bg-accent" : "bg-accent/50") : ""}`} style={{ backgroundColor: count === 0 ? "transparent" : undefined }} />
+                  )}
                 </motion.button>
               );
             })}
@@ -275,12 +347,22 @@ export default function AppointmentsPage() {
 
       {/* ═══ SCROLLABLE CONTENT ═══ */}
       {/* This div takes all remaining height and scrolls independently */}
+      <AnimatePresence mode="wait" initial={false}>
 
       {view === "jour" && (
-        <div
+        <motion.div key={`jour-${selectedStr}`} initial={tabContentVariants.initial} animate={tabContentVariants.animate} exit={tabContentVariants.exit} transition={tabContentTransition}
           className="flex-1 overflow-y-auto overscroll-contain"
           style={{ WebkitOverflowScrolling: "touch" }}
           onClick={() => showFilter && setShowFilter(false)}
+          onPanEnd={(_, info) => {
+            const { offset, velocity } = info;
+            const horizontal = Math.abs(offset.x) > 60 && Math.abs(offset.x) > Math.abs(offset.y) * 1.4;
+            const flung = Math.abs(velocity.x) > 350 && Math.abs(velocity.x) > Math.abs(velocity.y) * 1.2;
+            if (!horizontal && !flung) return;
+            const d = new Date(selectedDate);
+            if (offset.x > 0) { d.setDate(d.getDate() - 1); setSelectedDate(d); }
+            else { d.setDate(d.getDate() + 1); setSelectedDate(d); }
+          }}
         >
           <div className="px-6 pb-32 pt-2">
             {HOURS.map((hour) => {
@@ -332,7 +414,7 @@ export default function AppointmentsPage() {
                       </div>
                     ) : (
                       <motion.button
-                        whileTap={{ scale: 0.97 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => openNewAtHour(hour)}
                         className="w-full h-full min-h-[72px] flex items-center justify-center group"
                       >
@@ -346,14 +428,30 @@ export default function AppointmentsPage() {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {view === "semaine" && (
-        <div
+        <motion.div key="semaine" initial={tabContentVariants.initial} animate={tabContentVariants.animate} exit={tabContentVariants.exit} transition={tabContentTransition}
           className="flex-1 overflow-y-auto overscroll-contain"
           style={{ WebkitOverflowScrolling: "touch" }}
           onClick={() => showFilter && setShowFilter(false)}
+          onPanEnd={(_, info) => {
+            const { offset, velocity } = info;
+            const horizontal = Math.abs(offset.x) > 60 && Math.abs(offset.x) > Math.abs(offset.y) * 1.4;
+            const flung = Math.abs(velocity.x) > 350 && Math.abs(velocity.x) > Math.abs(velocity.y) * 1.2;
+            if (!horizontal && !flung) return;
+            const wb = new Date(weekBase);
+            if (offset.x > 0) {
+              // swipe right = previous week
+              wb.setDate(wb.getDate() - 7);
+            } else {
+              // swipe left = next week
+              wb.setDate(wb.getDate() + 7);
+            }
+            setWeekBase(wb);
+            setSelectedDate(wb);
+          }}
         >
           <div className="px-6 pb-32 pt-2">
             <p className="section-label mb-3">{upcoming.length} rendez-vous</p>
@@ -405,15 +503,16 @@ export default function AppointmentsPage() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {/* ═══ FAB ═══ */}
+      {/* ═══ FAB — absolute inside the page container (stable across resizes) ═══ */}
       <motion.button
-        whileTap={{ scale: 0.92 }}
-        transition={{ type: "spring", stiffness: 500, damping: 20 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ type: "spring", stiffness: 600, damping: 40 }}
         onClick={() => { setForm({ ...form, date: selectedStr }); setShowNew(true); }}
-        className="fixed bottom-[96px] right-5 z-40 bg-accent-gradient text-white rounded-2xl px-5 py-3.5 flex items-center gap-2 fab-shadow"
+        className="absolute bottom-5 right-5 z-40 bg-accent-gradient text-white rounded-2xl px-5 py-3.5 flex items-center gap-2 fab-shadow"
       >
         <Plus size={18} strokeWidth={2.5} />
         <span className="text-[13px] font-bold">Nouveau</span>
@@ -430,7 +529,7 @@ export default function AppointmentsPage() {
                 {services.filter((s) => s.active).map((svc) => (
                   <motion.button key={svc.id} whileTap={{ scale: 0.95 }}
                     onClick={() => setForm({ ...form, title: svc.name, duration: String(svc.duration), price: String(svc.price) })}
-                    className={`text-[12px] font-semibold px-3.5 py-2 rounded-xl transition-all duration-200 ${form.title === svc.name ? "bg-accent text-white" : "bg-border-light text-muted"}`}>
+                    className={`text-[12px] font-semibold px-3.5 py-2 rounded-xl transition-all duration-150 ${form.title === svc.name ? "bg-accent text-white" : "bg-border-light text-muted"}`}>
                     {svc.name} · {svc.price}€
                   </motion.button>
                 ))}
@@ -464,9 +563,9 @@ export default function AppointmentsPage() {
               <label className="text-[12px] text-muted font-semibold mb-1.5 block">Durée (min)</label>
               <div className="flex gap-1.5">
                 {["30", "45", "60", "90"].map((d) => (
-                  <motion.button key={d} whileTap={{ scale: 0.9 }}
+                  <motion.button key={d} whileTap={{ scale: 0.96 }}
                     onClick={() => setForm({ ...form, duration: d })}
-                    className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 ${
+                    className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-150 ${
                       form.duration === d ? "bg-accent text-white" : "bg-border-light text-muted"
                     }`}>
                     {d}
@@ -485,7 +584,7 @@ export default function AppointmentsPage() {
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
               placeholder="Optionnel..." rows={2} className="input-field resize-none" />
           </div>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={handleSubmit}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={handleSubmit}
             className="w-full bg-accent-gradient text-white py-3.5 rounded-2xl text-[14px] font-bold fab-shadow">
             Créer le rendez-vous
           </motion.button>

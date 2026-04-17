@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-import { CreditCard, Users, TrendingUp, RefreshCw, ExternalLink } from "lucide-react";
+import { CreditCard, RefreshCw, ArrowLeft } from "lucide-react";
 
 interface DBUser {
   id: string;
@@ -14,6 +15,7 @@ interface DBUser {
 }
 
 export default function AdminPlansPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<DBUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,34 +58,34 @@ export default function AdminPlansPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-background">
-      <div className="flex-shrink-0 px-6 pt-5 pb-3">
-        <div className="flex items-center justify-between">
+      <div className="flex-shrink-0 px-6 pt-5 pb-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => router.back()}
+            className="w-10 h-10 rounded-xl bg-white flex items-center justify-center"
+            style={{ border: "1px solid #E4E4E7", boxShadow: "0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" }}>
+            <ArrowLeft size={18} className="text-foreground" strokeWidth={2.4} />
+          </motion.button>
           <div>
             <p className="text-[10px] text-accent font-bold uppercase tracking-wider">Monétisation</p>
-            <h1 className="text-[24px] font-bold text-foreground tracking-tight mt-1">Abonnements</h1>
-            <p className="text-[12px] text-muted mt-1">Gestion des plans et revenus.</p>
+            <h1 className="text-[22px] font-bold text-foreground tracking-tight leading-tight">Abonnements</h1>
           </div>
-          <motion.button whileTap={{ scale: 0.85 }} onClick={loadData} className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center">
-            <RefreshCw size={14} className={`text-muted ${loading ? "animate-spin" : ""}`} />
-          </motion.button>
         </div>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={loadData} className="w-10 h-10 rounded-xl bg-white flex items-center justify-center" style={{ border: "1px solid #E4E4E7", boxShadow: "0 2px 6px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" }}>
+          <RefreshCw size={14} className={`text-muted ${loading ? "animate-spin" : ""}`} />
+        </motion.button>
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
         <div className="px-6 pb-32">
-          {/* Status banner — no payment system yet */}
-          <div className="bg-warning-soft rounded-2xl p-5 mb-5">
+          {/* Overview banner */}
+          <div className="bg-accent-soft rounded-2xl p-5 mb-5">
             <div className="flex items-start gap-3">
-              <CreditCard size={20} className="text-warning flex-shrink-0 mt-0.5" />
+              <CreditCard size={20} className="text-accent flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-[14px] font-bold text-foreground">Aucun système de paiement</p>
+                <p className="text-[14px] font-bold text-foreground">Gestion des plans</p>
                 <p className="text-[12px] text-muted mt-1 leading-relaxed">
-                  Connectez Stripe pour activer les abonnements et suivre les revenus en temps réel.
+                  Consultez et modifiez les plans d&apos;abonnement. Les changements sont appliques immediatement aux utilisateurs.
                 </p>
-                <motion.button whileTap={{ scale: 0.97 }}
-                  className="mt-3 bg-white text-foreground px-4 py-2 rounded-xl text-[12px] font-bold flex items-center gap-1.5 shadow-sm">
-                  <ExternalLink size={12} /> Configurer Stripe
-                </motion.button>
               </div>
             </div>
           </div>
@@ -109,40 +111,60 @@ export default function AdminPlansPage() {
               {chartData.map((m, i) => (
                 <motion.div key={i} className={`flex-1 rounded-[3px] ${i === chartData.length - 1 ? "bg-accent" : "bg-accent/12"}`}
                   initial={{ height: "10%" }} animate={{ height: `${Math.max((m.value / maxChart) * 100, 6)}%` }}
-                  transition={{ delay: i * 0.05, duration: 0.5 }} />
+                  transition={{ delay: i * 0.05, duration: 0.2 }} />
               ))}
             </div>
             <div className="flex justify-between text-[8px] text-muted">{chartData.map((m) => <span key={m.label}>{m.label}</span>)}</div>
           </div>
 
-          {/* Revenue placeholder */}
-          <div className="bg-white rounded-2xl p-5 shadow-card-premium mb-5 text-center">
-            <TrendingUp size={28} className="text-muted mx-auto mb-3" />
-            <p className="text-[16px] font-bold text-foreground">Revenus : 0 €</p>
-            <p className="text-[12px] text-muted mt-1 max-w-[240px] mx-auto leading-relaxed">
-              Les revenus d&apos;abonnement apparaîtront ici une fois Stripe configuré.
-            </p>
-          </div>
-
-          {/* Plan ideas */}
-          <h2 className="text-[16px] font-bold text-foreground mb-3">Plans suggérés</h2>
+          {/* Real plans — synced with /subscription page */}
+          <h2 className="text-[16px] font-bold text-foreground mb-3">Plans actifs</h2>
           <div className="space-y-3">
             {[
-              { name: "Gratuit", price: "0 €", features: "Jusqu'à 5 clients · 1 service", color: "bg-border-light", textColor: "text-foreground" },
-              { name: "Pro", price: "19 €/mois", features: "Clients illimités · Tous les services", color: "bg-accent-soft", textColor: "text-accent" },
-              { name: "Business", price: "49 €/mois", features: "Multi-équipe · Analytics avancés", color: "bg-accent-gradient", textColor: "text-white" },
-            ].map((plan) => (
-              <div key={plan.name} className={`${plan.color} rounded-2xl p-4 ${plan.name === "Business" ? "text-white" : ""}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-[14px] font-bold ${plan.name === "Business" ? "text-white" : "text-foreground"}`}>{plan.name}</p>
-                    <p className={`text-[11px] mt-0.5 ${plan.name === "Business" ? "text-white/70" : "text-muted"}`}>{plan.features}</p>
+              {
+                tier: "essentiel" as const,
+                name: "Essentiel",
+                price: "0 €",
+                features: "15 clients · 30 RDV/mois · Page de reservation",
+                variant: "free",
+              },
+              {
+                tier: "croissance" as const,
+                name: "Pro",
+                price: "9,99 €/mois",
+                features: "Clients illimites · Fidelite · Stock · Factures PDF",
+                variant: "popular",
+              },
+              {
+                tier: "entreprise" as const,
+                name: "Elite",
+                price: "19,99 €/mois",
+                features: "Tout Pro + 5 collaborateurs · API · Support prioritaire",
+                variant: "premium",
+              },
+            ].map((plan) => {
+              const isPopular = plan.variant === "popular";
+              const isPremium = plan.variant === "premium";
+              return (
+                <div
+                  key={plan.tier}
+                  className={`rounded-2xl p-4 ${isPremium ? "bg-accent-gradient" : isPopular ? "bg-accent-soft ring-1 ring-accent/20" : "bg-border-light"}`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <p className={`text-[14px] font-bold ${isPremium ? "text-white" : "text-foreground"}`}>{plan.name}</p>
+                      {isPopular && (
+                        <span className="text-[8px] font-bold text-accent bg-white px-1.5 py-0.5 rounded uppercase tracking-wider">Populaire</span>
+                      )}
+                    </div>
+                    <p className={`text-[15px] font-bold ${isPremium ? "text-white" : isPopular ? "text-accent" : "text-foreground"}`}>{plan.price}</p>
                   </div>
-                  <p className={`text-[16px] font-bold ${plan.textColor}`}>{plan.price}</p>
+                  <p className={`text-[11px] leading-relaxed ${isPremium ? "text-white/75" : "text-muted"}`}>{plan.features}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+          <p className="text-[10px] text-muted mt-3 text-center">Les plans sont synchronises avec la page abonnement des utilisateurs.</p>
         </div>
       </div>
     </div>
