@@ -71,6 +71,29 @@ export async function adminListUsers() {
 }
 
 /**
+ * Delete a user entirely: wipes app data then deletes the auth.users row.
+ * Gated by the server (caller's Supabase session must have is_admin = true).
+ */
+export async function adminDeleteUser(userId: string): Promise<boolean> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return false;
+    const res = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ userId }),
+    });
+    return res.ok;
+  } catch (e) {
+    console.error("[adminDeleteUser] failed:", e);
+    return false;
+  }
+}
+
+/**
  * Fetch aggregated data for a single user.
  */
 export async function adminFetchUserData(userId: string) {

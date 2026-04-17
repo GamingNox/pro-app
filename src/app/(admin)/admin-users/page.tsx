@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import {
   Search, UserPlus, RefreshCw, CalendarDays, Briefcase, X, Mail, KeyRound, Eye,
-  CreditCard, Users, Receipt, Check, AlertTriangle, Sparkles,
+  CreditCard, Users, Receipt, Check, AlertTriangle, Sparkles, Trash2, Loader2,
 } from "lucide-react";
-import { adminUpdateUserPlan, adminSendPasswordReset, adminFetchUserData, adminListUsers } from "@/lib/admin";
+import { adminUpdateUserPlan, adminSendPasswordReset, adminFetchUserData, adminListUsers, adminDeleteUser } from "@/lib/admin";
 import type { PlanTier } from "@/lib/types";
 import { PLAN_NAMES, PLAN_PRICES } from "@/lib/types";
 
@@ -33,7 +33,8 @@ export default function AdminUsersPage() {
   // Edit modal state
   const [selectedUser, setSelectedUser] = useState<DBUser | null>(null);
   const [userData, setUserData] = useState<UserDataView>(null);
-  const [action, setAction] = useState<"menu" | "plan" | "reset" | "view">("menu");
+  const [action, setAction] = useState<"menu" | "plan" | "reset" | "view" | "delete">("menu");
+  const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   async function loadData() {
@@ -118,6 +119,20 @@ export default function AdminUsersPage() {
     setAction("view");
     const data = await adminFetchUserData(selectedUser.id);
     setUserData(data);
+  }
+
+  async function handleDeleteUser() {
+    if (!selectedUser) return;
+    setDeleting(true);
+    const ok = await adminDeleteUser(selectedUser.id);
+    setDeleting(false);
+    if (ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+      showToast("success", `Compte ${selectedUser.email} supprimé`);
+      closeUser();
+    } else {
+      showToast("error", "Échec de la suppression");
+    }
   }
 
   const filtered = useMemo(() => {
@@ -299,6 +314,46 @@ export default function AdminUsersPage() {
                         <p className="text-[10px] text-muted mt-0.5">Mode admin lecture seule</p>
                       </div>
                       <span className="text-border">›</span>
+                    </motion.button>
+
+                    <motion.button whileTap={{ scale: 0.98 }} onClick={() => setAction("delete")}
+                      className="w-full flex items-center gap-3 p-4 bg-white border border-border-light rounded-2xl text-left hover:bg-border-light transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-danger-soft flex items-center justify-center flex-shrink-0">
+                        <Trash2 size={17} className="text-danger" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[13px] font-bold text-foreground">Supprimer le compte</p>
+                        <p className="text-[10px] text-muted mt-0.5">Efface l&apos;utilisateur et toutes ses données</p>
+                      </div>
+                      <span className="text-border">›</span>
+                    </motion.button>
+                  </div>
+                )}
+
+                {action === "delete" && selectedUser && (
+                  <div className="pt-2 space-y-3">
+                    <div className="rounded-2xl p-4 flex items-start gap-2.5"
+                      style={{ background: "#FEF2F2", border: "1px solid #FCA5A5" }}>
+                      <AlertTriangle size={14} className="text-danger mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-[12px] font-bold text-foreground">Suppression définitive</p>
+                        <p className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                          Cette action supprime le compte <strong>{selectedUser.email}</strong> ainsi que toutes ses données (clients, RDV, factures, services). Elle est <strong>irréversible</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDeleteUser}
+                      disabled={deleting}
+                      className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl text-[14px] font-bold text-white disabled:opacity-60"
+                      style={{ background: "linear-gradient(135deg, #EF4444, #B91C1C)" }}
+                    >
+                      {deleting ? <><Loader2 size={16} className="animate-spin" /> Suppression…</> : <><Trash2 size={16} /> Confirmer la suppression</>}
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.98 }} onClick={() => setAction("menu")}
+                      className="w-full p-4 rounded-2xl text-[13px] font-bold text-foreground bg-border-light">
+                      Annuler
                     </motion.button>
                   </div>
                 )}

@@ -22,6 +22,39 @@ export function validatePhone(v: string): string | null {
   return null;
 }
 
+/**
+ * French phone number: accepts 0X XX XX XX XX or +33 X XX XX XX XX
+ * where X starts with 1-9 (landline/mobile). Ignores spaces, dots, hyphens.
+ */
+export function validatePhoneFR(v: string): string | null {
+  if (!v.trim()) return null; // optional unless caller enforces required
+  const digits = v.replace(/[\s\-().]/g, "");
+  // Normalize +33 → 0 then check 10 digits starting 0 + non-zero
+  const normalized = digits.startsWith("+33") ? "0" + digits.slice(3) : digits;
+  if (!/^0[1-9]\d{8}$/.test(normalized)) {
+    return "Numéro de téléphone français invalide (ex : 06 12 34 56 78).";
+  }
+  return null;
+}
+
+export function validatePhoneFRRequired(v: string): string | null {
+  if (!v.trim()) return "Téléphone requis.";
+  return validatePhoneFR(v);
+}
+
+/**
+ * Password strength: at least 8 characters, at least one letter and one digit.
+ * Deliberately loose so users can pick something they'll remember, while
+ * blocking "123456" / "abc" style entries.
+ */
+export function validatePasswordStrength(v: string): string | null {
+  if (!v) return "Mot de passe requis.";
+  if (v.length < 8) return "Au moins 8 caractères.";
+  if (!/[A-Za-z]/.test(v)) return "Au moins une lettre.";
+  if (!/\d/.test(v)) return "Au moins un chiffre.";
+  return null;
+}
+
 export function validateRequired(v: string, label = "Ce champ"): string | null {
   if (!v.trim()) return `${label} est requis.`;
   return null;

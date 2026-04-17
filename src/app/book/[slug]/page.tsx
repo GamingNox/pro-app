@@ -249,6 +249,21 @@ export default function BookingPage() {
       alert("Merci de remplir au moins votre prénom, la date et l'heure.");
       return;
     }
+
+    // Validate email format if provided (optional field)
+    if (clientEmail.trim()) {
+      const { validateEmailRequired } = await import("@/lib/validate");
+      const err = validateEmailRequired(clientEmail);
+      if (err) { alert(err); return; }
+    }
+
+    // Validate French phone format if provided (optional field)
+    if (clientPhone.trim()) {
+      const { validatePhoneFR } = await import("@/lib/validate");
+      const err = validatePhoneFR(clientPhone);
+      if (err) { alert(err); return; }
+    }
+
     setBooking(true);
 
     const isGuest = mode === "guest";

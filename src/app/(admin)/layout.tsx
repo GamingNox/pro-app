@@ -14,43 +14,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     async function checkAdmin() {
-      // ── Primary gate: localStorage flag ──
-      // The admin-login page sets this on successful credential check.
-      // If it's not set, the user has not logged in — redirect.
-      const localAuth = localStorage.getItem("admin-auth");
-      if (localAuth !== "true") {
-        router.replace("/admin-login");
-        return;
-      }
-
-      // ── Secondary verification via Supabase (optional upgrade) ──
-      // If the user ALSO has a Supabase session with is_admin = true,
-      // full admin capabilities (cross-user RLS reads) are enabled.
-      // If not, they still get in with localStorage-only access — the
-      // legacy path — but cross-user queries may fail.
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from("user_profiles")
-            .select("is_admin")
-            .eq("id", user.id)
-            .single();
-          if (profile?.is_admin === false) {
-            // Authenticated as a non-admin user — refuse
-            localStorage.removeItem("admin-auth");
-            router.replace("/admin-login");
-            return;
-          }
+        // Must have a real Supabase session AND is_admin = true.
+        // localStorage flag alone is no longer sufficient — it was
+        // trivially bypassable by setting admin-auth = true by hand.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          localStorage.removeItem("admin-auth");
+          router.replace("/admin-login");
+          return;
         }
-        // Either: user is a Supabase admin, or there's no Supabase session.
-        // In both cases the localStorage flag is enough for the layout.
-      } catch {
-        // Network or DB error — trust localStorage flag (offline tolerance)
-      }
 
-      setAuthorized(true);
-      setChecking(false);
+        const { data: profile, error } = await supabase
+          .from("user_profiles")
+          .select("is_admin")
+          .eq("id", session.user.id)
+          .single();
+
+        if (error || !profile?.is_admin) {
+          localStorage.removeItem("admin-auth");
+          router.replace("/admin-login");
+          return;
+        }
+
+        // Keep the flag so other parts of the app (e.g., admin nav visibility
+        // on the public side) can short-circuit without a DB roundtrip.
+        localStorage.setItem("admin-auth", "true");
+        setAuthorized(true);
+        setChecking(false);
+      } catch {
+        localStorage.removeItem("admin-auth");
+        router.replace("/admin-login");
+      }
     }
 
     checkAdmin();

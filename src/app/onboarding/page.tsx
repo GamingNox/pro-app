@@ -6,6 +6,7 @@ import { useApp } from "@/lib/store";
 import { supabase } from "@/lib/supabase";
 import { notifyAdmin } from "@/lib/notify";
 import { saveSetting } from "@/lib/user-settings";
+import { validateEmailRequired, validatePasswordStrength } from "@/lib/validate";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight, ArrowLeft, Sparkles, CalendarDays, BarChart3,
@@ -220,9 +221,10 @@ export default function OnboardingPage() {
   // After success, quick mode → redirect; complete mode → advance to step 1.
   async function handleStep0Submit() {
     if (!formData.name.trim()) { setAuthError("Veuillez entrer votre nom."); return; }
-    if (!formData.email.trim()) { setAuthError("Veuillez entrer votre adresse e-mail."); return; }
-    if (!formData.password.trim()) { setAuthError("Veuillez entrer un mot de passe."); return; }
-    if (formData.password.trim().length < 6) { setAuthError("Le mot de passe doit contenir au moins 6 caractères."); return; }
+    const emailErr = validateEmailRequired(formData.email);
+    if (emailErr) { setAuthError(emailErr); return; }
+    const pwErr = validatePasswordStrength(formData.password);
+    if (pwErr) { setAuthError(pwErr); return; }
 
     setAuthLoading(true);
     setAuthError("");
@@ -415,7 +417,8 @@ export default function OnboardingPage() {
 
   // ── Real Supabase Auth Login ──────────────────────────
   async function handleLogin() {
-    if (!formData.email.trim()) { setAuthError("Veuillez entrer votre adresse e-mail."); return; }
+    const emailErr = validateEmailRequired(formData.email);
+    if (emailErr) { setAuthError(emailErr); return; }
     if (!formData.password.trim()) { setAuthError("Veuillez entrer votre mot de passe."); return; }
     setAuthLoading(true);
     setAuthError("");
