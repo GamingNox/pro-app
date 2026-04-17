@@ -31,6 +31,23 @@ export default class ErrorBoundary extends Component<Props, State> {
     console.error("[ErrorBoundary] caught:", error, info.componentStack);
   }
 
+  buildMailto(): string {
+    const err = this.state.error;
+    if (!err) return "mailto:clientbase.fr@gmail.com";
+    const stack = (err.stack || "").split("\n").slice(0, 10).join("\n");
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const body =
+      `Bonjour,\n\nJ'ai rencontré une erreur sur Clientbase. Voici les détails :\n\n` +
+      `— URL : ${url}\n` +
+      `— Navigateur : ${ua}\n` +
+      `— Date : ${new Date().toISOString()}\n\n` +
+      `Erreur :\n${err.message}\n\n` +
+      `Pile d'exécution :\n${stack}\n\n` +
+      `Pouvez-vous m'aider ? Merci.`;
+    return `mailto:clientbase.fr@gmail.com?subject=${encodeURIComponent("[Clientbase] Bug rencontré")}&body=${encodeURIComponent(body)}`;
+  }
+
   render() {
     if (!this.state.hasError) return this.props.children;
 
@@ -76,22 +93,42 @@ export default class ErrorBoundary extends Component<Props, State> {
           Rechargez la page pour continuer.
         </p>
 
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
-            color: "white",
-            border: "none",
-            borderRadius: 12,
-            padding: "12px 28px",
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: "pointer",
-            boxShadow: "0 8px 20px rgba(91, 79, 233, 0.3)",
-          }}
-        >
-          Recharger la page
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
+              color: "white",
+              border: "none",
+              borderRadius: 12,
+              padding: "12px 24px",
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 8px 20px rgba(91, 79, 233, 0.3)",
+            }}
+          >
+            Recharger la page
+          </button>
+          {this.state.error && (
+            <a
+              href={this.buildMailto()}
+              style={{
+                background: "white",
+                color: "#5B4FE9",
+                border: "1.5px solid #E0DCFF",
+                borderRadius: 12,
+                padding: "12px 24px",
+                fontSize: 14,
+                fontWeight: 700,
+                textDecoration: "none",
+                cursor: "pointer",
+              }}
+            >
+              Signaler le problème
+            </a>
+          )}
+        </div>
 
         {this.state.error && (
           <details

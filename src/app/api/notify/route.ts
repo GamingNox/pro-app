@@ -13,6 +13,37 @@
 // warning — so the app keeps working while the key isn't set.
 
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+async function logActivity(payload: NotifyPayload): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return;
+  try {
+    const supabase = createClient(url, key, { auth: { persistSession: false } });
+    const typeMap: Record<string, string> = {
+      signup: "signup",
+      beta_request: "beta_request",
+      beta_approved: "admin_action",
+      beta_rejected: "admin_action",
+      support_request: "support",
+      generic: "generic",
+    };
+    const description =
+      payload.type === "signup" ? `Nouveau compte : ${payload.userName || payload.userEmail || "?"}`
+      : payload.type === "beta_request" ? `Demande bêta : ${payload.userEmail || "?"}`
+      : payload.type === "support_request" ? `Message support : ${payload.userEmail || "?"}`
+      : payload.message || `Événement : ${payload.type}`;
+    await supabase.from("activity_log").insert({
+      type: typeMap[payload.type] || payload.type,
+      user_email: payload.userEmail || null,
+      description,
+      metadata: payload.metadata || null,
+    });
+  } catch (e) {
+    console.warn("[notify] activity_log insert failed:", e);
+  }
+}
 
 // IMPORTANT: this version of Next.js treats route handlers as static by
 // default. Force dynamic so every call hits the server.
@@ -114,6 +145,10 @@ export async function POST(req: Request) {
   if (!payload?.type) {
     return NextResponse.json({ ok: false, error: "missing_type" }, { status: 400 });
   }
+
+  // Fire-and-forget: log to activity_log so admins can see the event
+  // in /admin-logs even if the email fails to deliver.
+  void logActivity(payload);
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

@@ -14,6 +14,10 @@ import WeeklyRecap from "@/components/WeeklyRecap";
 import SaveToast from "@/components/SaveToast";
 import UndoToast from "@/components/UndoToast";
 import NotifPrompt from "@/components/NotifPrompt";
+import GlobalBanners from "@/components/GlobalBanners";
+import SiteClosedGate from "@/components/SiteClosedGate";
+import VersionToast from "@/components/VersionToast";
+import FloatingSupportButton from "@/components/FloatingSupportButton";
 
 const TAB_ORDER = ["/appointments", "/clients", "/", "/gestion", "/profile"];
 
@@ -71,7 +75,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isTabRoute = TAB_ORDER.includes(pathname);
 
   return (
+    <SiteClosedGate>
     <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto relative bg-background">
+      <GlobalBanners />
       <DemoBanner />
       <BetaStatusToast />
       <MilestoneTracker />
@@ -79,6 +85,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SaveToast />
       <UndoToast />
       <NotifPrompt />
+      <VersionToast />
       {isTabRoute ? (
         <motion.main
           onPanEnd={handlePanEnd}
@@ -92,6 +99,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       )}
       {user.accountType !== "client" && <BottomNav />}
+      {user.accountType !== "client" && !pathname.startsWith("/chat") && <FloatingSupportButton />}
     </div>
+    </SiteClosedGate>
   );
 }

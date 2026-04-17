@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   Wrench,
   Activity,
+  ListTree,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { countPendingBetaRequests, getUnseenBetaCount } from "@/lib/beta";
@@ -76,6 +77,8 @@ export default function AdminToolsPage() {
     { key: "feedback", label: "Retours bêta", subtitle: "Bugs & suggestions",        icon: MessageSquareHeart,href: "/admin-feedback", category: "beta" },
     { key: "gifts",    label: "Codes cadeaux",subtitle: "Récompenses Premium",       icon: Gift,              href: "/admin-gifts",    category: "marketing" },
     { key: "activity", label: "Activité",     subtitle: "Timeline globale",          icon: Activity,          href: "/admin-activity", category: "system" },
+    { key: "controls", label: "Contrôles site",subtitle: "Maintenance, fermeture",    icon: Wrench,            href: "/admin-controls", category: "system" },
+    { key: "logs",     label: "Journal",       subtitle: "Dernières actions",         icon: ListTree,          href: "/admin-logs",     category: "system" },
     { key: "analytics",label: "Statistiques", subtitle: "Vue globale",               icon: BarChart3,         href: "/admin-analytics",category: "finance" },
     { key: "settings", label: "Réglages",     subtitle: "Configuration",             icon: SettingsIcon,      href: "/admin-settings", category: "system" },
   ], [userCount, pendingBeta]);
