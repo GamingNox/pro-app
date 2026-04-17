@@ -72,7 +72,8 @@ export async function POST(req: Request) {
   }
 
   const fromName = (payload.fromName || "Client Base").replace(/[<>"']/g, "");
-  const from = `${fromName} <onboarding@resend.dev>`;
+  const fromAddress = process.env.RESEND_FROM_EMAIL || "noreply@clientbase.fr";
+  const from = `${fromName} <${fromAddress}>`;
 
   const body: Record<string, unknown> = {
     from,

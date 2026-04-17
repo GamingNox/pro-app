@@ -19,7 +19,8 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "clientbase.fr@gmail.com";
-const FROM = "Client Base <onboarding@resend.dev>";
+const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || "noreply@clientbase.fr";
+const FROM = `Client Base <${FROM_ADDRESS}>`;
 
 type NotifyPayload = {
   type:
