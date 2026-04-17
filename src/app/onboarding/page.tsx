@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { notifyAdmin } from "@/lib/notify";
 import { saveSetting } from "@/lib/user-settings";
 import { validateEmailRequired, validatePasswordStrength } from "@/lib/validate";
+import OTPVerify from "@/components/OTPVerify";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight, ArrowLeft, Sparkles, CalendarDays, BarChart3,
@@ -110,6 +111,7 @@ export default function OnboardingPage() {
   const [signupStep, setSignupStep] = useState(0); // 0..4 for pro complete mode; always 0 for client/quick
   const [signupMode, setSignupMode] = useState<SignupMode>("complete");
   const [createdUid, setCreatedUid] = useState<string | null>(null);
+  const [showEmailVerify, setShowEmailVerify] = useState(false);
   // Accumulates onboarding_data JSONB snapshot across steps so each DB write
   // merges with previous values (rather than overwriting the column).
   const [onboardingSnapshot, setOnboardingSnapshot] = useState<import("@/lib/types").OnboardingData>({});
@@ -272,15 +274,16 @@ export default function OnboardingPage() {
         metadata: { account_type: acctType, booking_slug: slug, mode: signupMode },
       });
 
-      // Client + quick pro → straight into the app (completeAuth syncs store).
-      if (acctType === "client" || signupMode === "quick") {
-        await completeAuth(uid, acctType);
-        router.replace(acctType === "client" ? "/client-home" : "/");
+      // Require email verification for pros before they enter the app.
+      // Clients keep a frictionless flow.
+      if (acctType === "pro") {
+        setShowEmailVerify(true);
         return;
       }
 
-      // Complete pro signup → advance to business info step.
-      setSignupStep(1);
+      // Clients → straight into the app.
+      await completeAuth(uid, acctType);
+      router.replace("/client-home");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Une erreur est survenue.";
       if (msg.includes("already registered")) setAuthError("Cet email est déjà utilisé. Essayez de vous connecter.");
@@ -445,6 +448,34 @@ export default function OnboardingPage() {
 
   return (
     <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto bg-background">
+      {showEmailVerify && createdUid && (
+        <OTPVerify
+          email={formData.email.trim()}
+          userId={createdUid}
+          onVerified={async () => {
+            setShowEmailVerify(false);
+            // Continue the flow: quick → straight to app; complete → step 1
+            if (signupMode === "quick") {
+              await completeAuth(createdUid, acctType);
+              router.replace("/");
+            } else {
+              setSignupStep(1);
+            }
+          }}
+          onClose={async () => {
+            // Allow skipping: proceed without email_verified flag
+            setShowEmailVerify(false);
+            if (signupMode === "quick") {
+              await completeAuth(createdUid, acctType);
+              router.replace("/");
+            } else {
+              setSignupStep(1);
+            }
+          }}
+          title="Confirmez votre email"
+          description="Nous vous avons envoyé un code à 6 chiffres à"
+        />
+      )}
       <AnimatePresence mode="wait">
 
         {/* ═══ SLIDES (4 distinct hero layouts) ═══ */}

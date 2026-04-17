@@ -143,6 +143,32 @@ export function buildConfirmationEmail(opts: {
   };
 }
 
+export function buildCancellationEmail(opts: {
+  clientName: string;
+  businessName: string;
+  serviceName: string;
+  dateFr: string;
+  timeFr: string;
+  rebookUrl?: string;
+}) {
+  const body =
+    `Bonjour ${opts.clientName},\n\n` +
+    `Votre rendez-vous chez ${opts.businessName} pour ${opts.serviceName} ` +
+    `le ${opts.dateFr} à ${opts.timeFr} a été annulé.\n\n` +
+    `Si vous souhaitez choisir un autre créneau, vous pouvez réserver à nouveau ci-dessous.`;
+  return {
+    subject: `Rendez-vous annulé — ${opts.businessName}`,
+    html: wrapHtml({
+      title: "Rendez-vous annulé",
+      business: opts.businessName,
+      body,
+      ctaLabel: opts.rebookUrl ? "Reprendre rendez-vous" : undefined,
+      ctaUrl: opts.rebookUrl,
+    }),
+    text: body,
+  };
+}
+
 export function buildReminderEmail(opts: {
   clientName: string;
   businessName: string;

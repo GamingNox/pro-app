@@ -29,6 +29,48 @@ import type {
 const today = () => new Date().toISOString().split("T")[0];
 const avatarColors = ["#7C3AED", "#3B82F6", "#10B981", "#F59E0B", "#EC4899", "#8B5CF6", "#06B6D4", "#EF4444", "#14B8A6", "#F97316"];
 
+// ── Auto cancellation email (fire-and-forget) ───────────
+// Triggered from setAppointmentStatus when an appointment flips to "canceled".
+async function fireCancellationEmail(
+  appointment: Appointment,
+  clientsList: Client[],
+  user: UserProfile
+): Promise<void> {
+  try {
+    const client = clientsList.find((c) => c.id === appointment.clientId);
+    const recipientEmail = client?.email || appointment.guestEmail;
+    const recipientName = client?.firstName || appointment.guestName?.split(" ")[0] || "Client";
+    if (!recipientEmail) return;
+
+    const businessName = user.business || user.name || "Client Base";
+    const rebookUrl = user.bookingSlug ? `https://clientbase.fr/p/${user.bookingSlug}` : undefined;
+
+    const apptDate = new Date(appointment.date);
+    const dateFr = apptDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+
+    const { sendEmail, buildCancellationEmail } = await import("./email");
+    const { subject, html, text } = buildCancellationEmail({
+      clientName: recipientName,
+      businessName,
+      serviceName: appointment.title,
+      dateFr,
+      timeFr: appointment.time,
+      rebookUrl,
+    });
+
+    await sendEmail({
+      to: recipientEmail,
+      subject,
+      html,
+      text,
+      fromName: businessName,
+      replyTo: user.email || undefined,
+    });
+  } catch (e) {
+    console.warn("[cancellation-email] failed:", e);
+  }
+}
+
 // ── Auto review request (fire-and-forget) ───────────────
 // Triggered from setAppointmentStatus when an appointment flips to "done".
 // Checks: review_request_enabled setting, client has email, not already sent.
@@ -1176,6 +1218,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // ── Auto review request on transition to "done" ──────
     if (status === "done" && previous && previous.status !== "done") {
       void fireReviewRequestEmail(id, previous, clients, user);
+    }
+
+    // ── Auto cancellation email on transition to "canceled" ──
+    if (status === "canceled" && previous && previous.status !== "canceled") {
+      void fireCancellationEmail(previous, clients, user);
     }
   }, [clients, user]);
 

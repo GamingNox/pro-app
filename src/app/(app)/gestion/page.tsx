@@ -9,7 +9,7 @@ import {
   Plus, Clock, CheckCircle2, Receipt, Package, Wallet,
   Trash2, Minus, Search, TrendingDown, TrendingUp, ArrowUpRight,
   Copy, AlertCircle, BarChart3, PiggyBank, ShoppingCart,
-  FileText, AlertTriangle, ChevronRight, ChevronDown, Settings, Save, ArrowLeft,
+  FileText, AlertTriangle, ChevronRight, Settings, Save, ArrowLeft,
   Gift, Tag, Users as UsersIcon, CalendarDays, MessageSquare,
   Download, Send, Link2, QrCode, Globe,
 } from "lucide-react";
@@ -76,7 +76,6 @@ export default function GestionPage() {
   const [showGoalConfig, setShowGoalConfig] = useState(false);
   const [goalInput, setGoalInput] = useState("1500");
   const [showMoreTools, setShowMoreTools] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [invForm, setInvForm] = useState({ clientId: "", description: "", status: "pending" as "paid" | "pending" });
   const [lineItems, setLineItems] = useState<InvoiceItem[]>([{ label: "", quantity: 1, unitPrice: 0 }]);
   const [invoiceMode, setInvoiceMode] = useState<"quick" | "detailed">("quick");
@@ -578,22 +577,7 @@ export default function GestionPage() {
                 <Plus size={16} strokeWidth={2.6} /> Encaisser un paiement
               </motion.button>
 
-              {/* Avancé toggle — reveals the full dashboard */}
-              <motion.button
-                whileTap={{ scale: 0.99 }}
-                onClick={() => setShowAdvanced((v) => !v)}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 mb-4 text-[12px] font-bold rounded-xl bg-white"
-                style={{ border: "1px solid #E4E4E7", color: "#52525B" }}
-              >
-                {showAdvanced ? "Masquer le mode avancé" : "Afficher le mode avancé"}
-                <ChevronDown
-                  size={14}
-                  strokeWidth={2.4}
-                  style={{ transform: showAdvanced ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
-                />
-              </motion.button>
-
-              {showAdvanced && <>
+              <>
 
               {/* ══ HERO — dynamic contextual message (rotates) ══ */}
               <motion.button
@@ -1001,7 +985,7 @@ export default function GestionPage() {
                 </div>
               )}
 
-              </>}
+              </>
             </motion.div>
             );
           })()}
