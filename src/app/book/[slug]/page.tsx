@@ -901,6 +901,19 @@ export default function BookingPage() {
                 </p>
               </div>
 
+              {clientEmail.trim() && (
+                <div className="rounded-2xl p-4 mb-4 flex items-start gap-2.5"
+                  style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+                  <Mail size={14} className="mt-0.5 flex-shrink-0" style={{ color: "#2563EB" }} />
+                  <div>
+                    <p className="text-[12px] font-bold text-foreground">Email de confirmation envoyé</p>
+                    <p className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                      Un récapitulatif a été envoyé à <strong>{clientEmail.trim()}</strong>. Pensez à vérifier vos spams si vous ne le voyez pas dans les prochaines minutes.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {bookingRules.cancelMessage && (
                 <div className="rounded-2xl p-4 mb-4 flex items-start gap-2.5"
                   style={{ background: "#FFFBEB", border: "1px solid #FEF3C7" }}>
