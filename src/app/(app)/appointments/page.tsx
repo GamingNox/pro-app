@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { useApp } from "@/lib/store";
 import { getInitials } from "@/lib/data";
 import Modal from "@/components/Modal";
@@ -457,11 +458,28 @@ export default function AppointmentsPage() {
             <p className="section-label mb-3">{upcoming.length} rendez-vous</p>
             {upcoming.length === 0 ? (
               <div className="bg-white rounded-[22px] p-8 shadow-card-premium text-center">
-                <div className="w-14 h-14 rounded-2xl bg-border-light flex items-center justify-center mx-auto mb-3">
-                  <CalendarDays size={24} className="text-muted" />
+                <div className="w-16 h-16 rounded-2xl bg-accent-soft flex items-center justify-center mx-auto mb-3">
+                  <CalendarDays size={28} className="text-accent" />
                 </div>
-                <p className="text-[15px] font-bold text-foreground">Aucun rendez-vous</p>
-                <p className="text-[13px] text-muted mt-1">Planifiez votre semaine.</p>
+                <p className="text-[17px] font-bold text-foreground mb-1">Aucun rendez-vous à venir</p>
+                <p className="text-[13px] text-muted mb-5 leading-relaxed">
+                  Ajoutez-en manuellement, ou laissez vos clients réserver tout seuls via votre lien de réservation.
+                </p>
+                <div className="flex flex-col gap-2 max-w-[240px] mx-auto">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowNew(true)}
+                    className="inline-flex items-center justify-center gap-2 bg-accent-gradient text-white text-[13px] font-bold px-5 py-3 rounded-xl fab-shadow"
+                  >
+                    + Ajouter un RDV
+                  </motion.button>
+                  <Link
+                    href="/settings/booking-link"
+                    className="inline-flex items-center justify-center gap-2 bg-white border border-border text-foreground text-[13px] font-bold px-5 py-3 rounded-xl"
+                  >
+                    Partager mon lien de résa
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col gap-2.5">

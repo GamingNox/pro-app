@@ -349,61 +349,6 @@ export default function SettingsServicesPage() {
                 />
               </div>
 
-              {/* Category chips */}
-              <div>
-                <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">
-                  Catégorie
-                </label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {CATEGORY_CHIPS.map((c) => {
-                    const active = form.category === c;
-                    return (
-                      <motion.button
-                        key={c}
-                        whileTap={{ scale: 0.94 }}
-                        onClick={() => setForm({ ...form, category: c })}
-                        className="px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors"
-                        style={
-                          active
-                            ? {
-                                background: "var(--color-primary)",
-                                color: "white",
-                                borderColor: "var(--color-primary)",
-                              }
-                            : {
-                                background: "white",
-                                color: "var(--color-muted, #71717A)",
-                                borderColor: "var(--color-border, #E4E4E7)",
-                              }
-                        }
-                      >
-                        {c}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-                <input
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  placeholder="... ou saisissez votre propre catégorie"
-                  className="input-field"
-                />
-              </div>
-
-              {/* Private notes */}
-              <div>
-                <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block flex items-center gap-1.5">
-                  <Lock size={11} /> Notes privées
-                </label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={2}
-                  placeholder="Visible uniquement par vous"
-                  className="input-field resize-none"
-                />
-              </div>
-
               {/* Visibility toggle */}
               <div
                 className="flex items-center justify-between py-2 px-3 rounded-xl"
@@ -503,29 +448,6 @@ export default function SettingsServicesPage() {
                   </p>
                 )}
 
-                {/* Violet category badge + private notes indicator */}
-                <div className="flex items-center flex-wrap gap-2 mb-3">
-                  <span
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
-                    style={{
-                      background: "var(--color-primary-soft)",
-                      color: "var(--color-primary)",
-                    }}
-                  >
-                    <Tag size={10} /> {meta.category || "Prestation"}
-                  </span>
-                  {meta.notes && (
-                    <span
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold"
-                      style={{
-                        background: "var(--color-primary-soft)",
-                        color: "var(--color-primary)",
-                      }}
-                    >
-                      <FileText size={10} /> Notes
-                    </span>
-                  )}
-                </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-border-light">
                   <SettingsToggle

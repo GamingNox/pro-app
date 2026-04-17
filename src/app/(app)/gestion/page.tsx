@@ -1415,7 +1415,20 @@ export default function GestionPage() {
 
           <div>
             <label className="text-[12px] text-muted font-semibold mb-1.5 block">Client</label>
-            <select value={invForm.clientId} onChange={(e) => setInvForm({ ...invForm, clientId: e.target.value })} className="input-field">
+            <select value={invForm.clientId} onChange={(e) => {
+              const newClientId = e.target.value;
+              setInvForm({ ...invForm, clientId: newClientId });
+              // Pré-remplir avec la dernière facture de ce client
+              if (newClientId && !invForm.description && !quickAmount) {
+                const lastInvoice = invoices
+                  .filter((inv) => inv.clientId === newClientId && inv.clientId !== "__expense__")
+                  .sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
+                if (lastInvoice) {
+                  setInvForm((prev) => ({ ...prev, clientId: newClientId, description: lastInvoice.description }));
+                  setQuickAmount(String(lastInvoice.amount));
+                }
+              }
+            }} className="input-field">
               <option value="">-- Sélectionner --</option>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}
             </select>

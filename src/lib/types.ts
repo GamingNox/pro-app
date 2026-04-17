@@ -165,6 +165,7 @@ export interface UserProfile {
   business: string;
   phone: string;
   email: string;
+  address?: string;
   bookingSlug?: string;
   accountType?: AccountType;
   plan?: PlanTier;

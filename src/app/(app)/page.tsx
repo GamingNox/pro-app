@@ -8,7 +8,7 @@ import Link from "next/link";
 import {
   Plus, CalendarDays, UserPlus, Receipt, ChevronRight,
   CheckCircle2, Clock, Sparkles, Bell,
-  FileText, Send,
+  FileText, Send, Copy, MessageCircle, Mail,
   Users, X, TrendingUp, Package, Gift, ArrowRight,
 } from "lucide-react";
 import { staggerItem } from "@/lib/motion";
@@ -470,34 +470,71 @@ export default function DashboardPage() {
             </motion.div>
           </Link>
 
-          {/* ── Lien de réservation — prominent card ── */}
-          {user.bookingSlug && (
-            <Link href="/settings/booking-link">
-              <motion.div
-                whileTap={{ scale: 0.98 }}
-                className="w-full rounded-2xl p-4 mb-5 flex items-center gap-3 relative overflow-hidden"
+          {/* ── Lien de réservation — actionable share card ── */}
+          {user.bookingSlug && (() => {
+            const bookingUrl = `https://clientbase.fr/p/${user.bookingSlug}`;
+            const shareMsg = `Prenez rendez-vous avec ${user.name || user.business || "moi"} : ${bookingUrl}`;
+            return (
+              <div
+                className="w-full rounded-2xl p-4 mb-5 relative overflow-hidden"
                 style={{
                   background: "linear-gradient(135deg, #5B4FE9, #3B30B5)",
                   boxShadow: "0 12px 32px rgba(91,79,233,0.28)",
                 }}
               >
                 <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/10" />
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 relative z-10 bg-white">
-                  <Send size={18} style={{ color: "#5B4FE9" }} strokeWidth={2.4} />
+                <div className="flex items-center gap-3 relative z-10 mb-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-white">
+                    <Send size={18} style={{ color: "#5B4FE9" }} strokeWidth={2.4} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">
+                      Votre lien de réservation
+                    </p>
+                    <p className="text-[13px] font-bold text-white mt-0.5 leading-tight truncate">
+                      clientbase.fr/p/{user.bookingSlug}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0 relative z-10">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/80">
-                    Votre lien de réservation
-                  </p>
-                  <p className="text-[13px] font-bold text-white mt-0.5 leading-tight truncate">
-                    clientbase.fr/p/{user.bookingSlug}
-                  </p>
-                  <p className="text-[10px] text-white/80 mt-1">Partagez-le pour que vos clients réservent seuls</p>
+
+                {/* Action buttons — direct share */}
+                <div className="grid grid-cols-3 gap-2 relative z-10">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(bookingUrl);
+                        window.dispatchEvent(new CustomEvent("save-toast", { detail: { text: "Lien copié" } }));
+                      } catch {
+                        /* clipboard unavailable */
+                      }
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-[12px] font-bold"
+                  >
+                    <Copy size={13} strokeWidth={2.4} /> Copier
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      window.location.href = `sms:?&body=${encodeURIComponent(shareMsg)}`;
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-[12px] font-bold"
+                  >
+                    <MessageCircle size={13} strokeWidth={2.4} /> SMS
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      window.location.href = `mailto:?subject=${encodeURIComponent("Mon lien de réservation")}&body=${encodeURIComponent(shareMsg)}`;
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/15 backdrop-blur-sm text-white text-[12px] font-bold"
+                  >
+                    <Mail size={13} strokeWidth={2.4} /> Email
+                  </motion.button>
                 </div>
-                <ChevronRight size={15} className="text-white/80 flex-shrink-0 relative z-10" strokeWidth={2.4} />
-              </motion.div>
-            </Link>
-          )}
+              </div>
+            );
+          })()}
 
           {/* ── Smart Insights — real-time business advice ── */}
           <SmartInsights />

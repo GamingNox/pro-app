@@ -13,21 +13,32 @@ import { Check, AlertCircle } from "lucide-react";
  */
 export default function SaveToast() {
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [customText, setCustomText] = useState<string | null>(null);
 
   useEffect(() => {
     function onSaved() {
+      setCustomText(null);
       setStatus("saved");
       setTimeout(() => setStatus("idle"), 1800);
     }
     function onError() {
+      setCustomText(null);
       setStatus("error");
       setTimeout(() => setStatus("idle"), 2500);
     }
+    function onCustom(e: Event) {
+      const detail = (e as CustomEvent<{ text?: string }>).detail;
+      setCustomText(detail?.text || "Enregistré");
+      setStatus("saved");
+      setTimeout(() => { setStatus("idle"); setCustomText(null); }, 1800);
+    }
     window.addEventListener("settings-saved", onSaved);
     window.addEventListener("settings-error", onError);
+    window.addEventListener("save-toast", onCustom as EventListener);
     return () => {
       window.removeEventListener("settings-saved", onSaved);
       window.removeEventListener("settings-error", onError);
+      window.removeEventListener("save-toast", onCustom as EventListener);
     };
   }, []);
 
@@ -50,7 +61,7 @@ export default function SaveToast() {
           }}
         >
           {status === "saved" ? (
-            <><Check size={14} strokeWidth={3} /> Enregistré</>
+            <><Check size={14} strokeWidth={3} /> {customText || "Enregistré"}</>
           ) : (
             <><AlertCircle size={14} strokeWidth={2.6} /> Erreur de sauvegarde</>
           )}

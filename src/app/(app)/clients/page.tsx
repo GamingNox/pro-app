@@ -401,13 +401,27 @@ export default function ClientsPage() {
               <div className="w-16 h-16 rounded-2xl bg-accent-soft flex items-center justify-center mx-auto mb-3">
                 <UserPlus size={28} className="text-accent" />
               </div>
-              <p className="text-[16px] font-bold text-foreground mb-1">{search || filterTag !== "all" ? "Aucun résultat" : "Aucun client"}</p>
-              <p className="text-[13px] text-muted mb-5">{search ? "Essayez un autre terme." : "Ajoutez votre premier client."}</p>
+              <p className="text-[18px] font-bold text-foreground mb-1">
+                {search || filterTag !== "all" ? "Aucun résultat" : "Votre premier client vous attend"}
+              </p>
+              <p className="text-[13px] text-muted mb-5 leading-relaxed">
+                {search
+                  ? "Essayez un autre terme."
+                  : "Ajoutez-les manuellement, ou partagez votre lien de réservation — ils s'inscriront tout seuls quand ils prendront RDV."}
+              </p>
               {!search && filterTag === "all" && (
-                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowNew(true)}
-                  className="inline-flex items-center gap-2 bg-accent-gradient text-white text-[13px] font-bold px-5 py-2.5 rounded-xl fab-shadow">
-                  <Plus size={15} /> Ajouter un client
-                </motion.button>
+                <div className="flex flex-col gap-2 max-w-[240px] mx-auto">
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowNew(true)}
+                    className="inline-flex items-center justify-center gap-2 bg-accent-gradient text-white text-[13px] font-bold px-5 py-3 rounded-xl fab-shadow">
+                    <Plus size={15} /> Ajouter un client
+                  </motion.button>
+                  <Link
+                    href="/settings/booking-link"
+                    className="inline-flex items-center justify-center gap-2 bg-white border border-border text-foreground text-[13px] font-bold px-5 py-3 rounded-xl"
+                  >
+                    Partager mon lien de résa
+                  </Link>
+                </div>
               )}
             </div>
           ) : sort === "alpha" && grouped ? (

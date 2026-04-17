@@ -399,7 +399,7 @@ export default function ProfilePage() {
                         {sec.label}
                       </p>
                     </div>
-                    <p className="text-[11px] text-muted px-1 mb-2.5 leading-relaxed">{sec.helper}</p>
+                    <p className="text-[12px] text-muted px-1 mb-2.5 leading-relaxed">{sec.helper}</p>
                   </>
                 )}
 
@@ -422,8 +422,8 @@ export default function ProfilePage() {
                             <Icon size={17} style={{ color: palette.color }} strokeWidth={2.2} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold text-foreground">{s.t}</p>
-                            <p className="text-[11px] text-muted mt-0.5 truncate">{s.s}</p>
+                            <p className="text-[14px] font-bold text-foreground">{s.t}</p>
+                            <p className="text-[12px] text-muted mt-0.5 truncate">{s.s}</p>
                           </div>
                           <ChevronRight size={15} className="text-border flex-shrink-0" />
                         </Link>

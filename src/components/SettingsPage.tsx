@@ -64,7 +64,7 @@ export default function SettingsPage({ category, title, description, children, v
               <p className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: cat.color }}>{category}</p>
             </div>
             <h1 className="text-[28px] font-bold text-foreground tracking-tight leading-tight">{title}</h1>
-            <p className="text-[13px] text-muted mt-2 leading-relaxed">{description}</p>
+            <p className="text-[14px] text-muted mt-2 leading-relaxed">{description}</p>
           </motion.div>
 
           {/* Page content — inherits category --color-accent */}
@@ -79,7 +79,7 @@ export function SettingsSection({ title, description, children }: { title?: stri
   return (
     <motion.div className="mb-5" {...staggerItem}>
       {title && <h2 className="text-[18px] font-bold text-foreground mb-1">{title}</h2>}
-      {description && <p className="text-[12px] text-muted mb-3 leading-relaxed">{description}</p>}
+      {description && <p className="text-[13px] text-muted mb-3 leading-relaxed">{description}</p>}
       <div className="bg-white rounded-2xl p-5 shadow-card-premium card-hover">{children}</div>
     </motion.div>
   );
@@ -135,8 +135,8 @@ export function SettingsRow({ label, hint, children, last = false }: { label: st
   return (
     <div className={`flex items-center justify-between py-3.5 ${last ? "" : "border-b border-border-light"}`}>
       <div className="flex-1 min-w-0 mr-3">
-        <span className="text-[13px] font-medium text-foreground">{label}</span>
-        {hint && <p className="text-[10px] text-muted mt-0.5">{hint}</p>}
+        <span className="text-[14px] font-medium text-foreground">{label}</span>
+        {hint && <p className="text-[12px] text-muted mt-0.5">{hint}</p>}
       </div>
       {children}
     </div>
