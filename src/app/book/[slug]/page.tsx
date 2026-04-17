@@ -63,6 +63,7 @@ export default function BookingPage() {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [takenTimes, setTakenTimes] = useState<string[]>([]);
   const [clientFirst, setClientFirst] = useState("");
   const [clientLast, setClientLast] = useState("");
   const [clientEmail, setClientEmail] = useState("");
@@ -124,6 +125,35 @@ export default function BookingPage() {
     }
     load();
   }, [slug]);
+
+  // Fetch taken slots whenever the selected date changes
+  useEffect(() => {
+    if (!selectedDate) {
+      setTakenTimes([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.rpc("public_get_taken_slots", {
+        p_slug: slug,
+        p_date: selectedDate,
+      });
+      if (cancelled) return;
+      if (Array.isArray(data)) {
+        setTakenTimes(data as string[]);
+      } else {
+        setTakenTimes([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [slug, selectedDate]);
+
+  // Reset selectedTime if it became unavailable after taken slots reloaded
+  useEffect(() => {
+    if (selectedTime && takenTimes.includes(selectedTime)) {
+      setSelectedTime("");
+    }
+  }, [takenTimes, selectedTime]);
 
   const service = services.find((s) => s.id === selectedService);
   const totalSteps = mode === "guest" ? 5 : 4;
@@ -643,11 +673,34 @@ export default function BookingPage() {
                   <div className="grid grid-cols-2 gap-2.5">
                     {morningSlots.map((t) => {
                       const isSel = selectedTime === t;
+                      const isTaken = takenTimes.includes(t);
                       return (
-                        <motion.button key={t} whileTap={{ scale: 0.95 }} onClick={() => setSelectedTime(t)}
-                          className="py-4 rounded-2xl text-left px-4 relative bg-white shadow-sm-apple"
-                          style={isSel ? { boxShadow: "0 0 0 2px #5B4FE9, 0 4px 12px rgba(91,79,233,0.15)" } : undefined}>
-                          <p className="text-[18px] font-bold" style={{ color: isSel ? "#5B4FE9" : "var(--color-foreground)" }}>{t}</p>
+                        <motion.button
+                          key={t}
+                          whileTap={!isTaken ? { scale: 0.95 } : undefined}
+                          onClick={() => !isTaken && setSelectedTime(t)}
+                          disabled={isTaken}
+                          className="py-4 rounded-2xl text-left px-4 relative bg-white shadow-sm-apple disabled:cursor-not-allowed"
+                          style={
+                            isSel
+                              ? { boxShadow: "0 0 0 2px #5B4FE9, 0 4px 12px rgba(91,79,233,0.15)" }
+                              : isTaken
+                                ? { backgroundColor: "#F3F4F6", opacity: 0.6 }
+                                : undefined
+                          }
+                        >
+                          <p
+                            className="text-[18px] font-bold"
+                            style={{
+                              color: isSel ? "#5B4FE9" : isTaken ? "#9CA3AF" : "var(--color-foreground)",
+                              textDecoration: isTaken ? "line-through" : undefined,
+                            }}
+                          >
+                            {t}
+                          </p>
+                          {isTaken && (
+                            <p className="text-[9px] font-semibold text-muted mt-0.5">Réservé</p>
+                          )}
                           {isSel && <CheckCircle2 size={18} className="absolute top-3 right-3" style={{ color: "#5B4FE9" }} />}
                         </motion.button>
                       );
@@ -658,11 +711,34 @@ export default function BookingPage() {
                   <div className="grid grid-cols-2 gap-2.5">
                     {afternoonSlots.map((t) => {
                       const isSel = selectedTime === t;
+                      const isTaken = takenTimes.includes(t);
                       return (
-                        <motion.button key={t} whileTap={{ scale: 0.95 }} onClick={() => setSelectedTime(t)}
-                          className="py-4 rounded-2xl text-left px-4 relative bg-white shadow-sm-apple"
-                          style={isSel ? { boxShadow: "0 0 0 2px #5B4FE9, 0 4px 12px rgba(91,79,233,0.15)" } : undefined}>
-                          <p className="text-[18px] font-bold" style={{ color: isSel ? "#5B4FE9" : "var(--color-foreground)" }}>{t}</p>
+                        <motion.button
+                          key={t}
+                          whileTap={!isTaken ? { scale: 0.95 } : undefined}
+                          onClick={() => !isTaken && setSelectedTime(t)}
+                          disabled={isTaken}
+                          className="py-4 rounded-2xl text-left px-4 relative bg-white shadow-sm-apple disabled:cursor-not-allowed"
+                          style={
+                            isSel
+                              ? { boxShadow: "0 0 0 2px #5B4FE9, 0 4px 12px rgba(91,79,233,0.15)" }
+                              : isTaken
+                                ? { backgroundColor: "#F3F4F6", opacity: 0.6 }
+                                : undefined
+                          }
+                        >
+                          <p
+                            className="text-[18px] font-bold"
+                            style={{
+                              color: isSel ? "#5B4FE9" : isTaken ? "#9CA3AF" : "var(--color-foreground)",
+                              textDecoration: isTaken ? "line-through" : undefined,
+                            }}
+                          >
+                            {t}
+                          </p>
+                          {isTaken && (
+                            <p className="text-[9px] font-semibold text-muted mt-0.5">Réservé</p>
+                          )}
                           {isSel && <CheckCircle2 size={18} className="absolute top-3 right-3" style={{ color: "#5B4FE9" }} />}
                         </motion.button>
                       );
