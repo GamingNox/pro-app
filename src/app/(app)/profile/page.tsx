@@ -8,7 +8,7 @@ import Modal from "@/components/Modal";
 import Link from "next/link";
 import SupportChat from "@/components/SupportChat";
 import {
-  User, Save, ChevronRight, ChevronDown, LogOut, Camera, Shield, Sparkles, Gift,
+  User, Save, ChevronRight, ChevronDown, LogOut, Camera, Shield, Sparkles, Gift, Lock,
   Briefcase, CalendarDays, CreditCard, Users, Globe, Send,
   SlidersHorizontal, Bell, HelpCircle, BookOpen, Rocket, BarChart3, Package,
   Receipt, FileText, Link2, Star, Percent, QrCode, MessageSquare,
@@ -364,11 +364,16 @@ export default function ProfilePage() {
             </motion.div>
           </Link>
 
-          {/* ═══ Categories — "Plus" collapsed by default to reduce clutter ═══ */}
+          {/* ═══ Categories — some collapsed, "Paiements" locked for non-beta ═══ */}
           {sections.map((sec) => {
             const palette = CAT_COLORS[sec.key];
             const isCollapsible = sec.key === "compte" || sec.key === "rapports";
             const isExpanded = !isCollapsible || showMore;
+            // Lock the Paiements section for non-beta pros. The blur lifts
+            // automatically for approved beta testers — they see the bypass
+            // via the coming-soon pattern already in place elsewhere.
+            const isLocked = sec.key === "paiements" && effectiveBetaStatus !== "approved";
+
             return (
               <div key={sec.key} className="mb-6">
                 {isCollapsible ? (
@@ -402,31 +407,66 @@ export default function ProfilePage() {
                 )}
 
                 {isExpanded && (
-                  <div className="bg-white rounded-2xl shadow-card-premium overflow-hidden">
-                    {sec.items.map((s, i) => {
-                      const Icon = s.icon;
-                      return (
-                        <Link
-                          key={s.href}
-                          id={`profile-item-${s.href}`}
-                          href={s.href}
-                          onClick={() => { try { sessionStorage.setItem("profile-scroll-target", s.href); } catch {} }}
-                          className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i < sec.items.length - 1 ? "border-b border-border-light" : ""}`}
-                        >
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: palette.soft }}
+                  <div className="relative">
+                    <div
+                      className={`bg-white rounded-2xl shadow-card-premium overflow-hidden ${isLocked ? "pointer-events-none select-none" : ""}`}
+                      style={{
+                        filter: isLocked ? "blur(3px)" : undefined,
+                        opacity: isLocked ? 0.55 : 1,
+                        transition: "filter 0.25s, opacity 0.25s",
+                      }}
+                      aria-hidden={isLocked}
+                    >
+                      {sec.items.map((s, i) => {
+                        const Icon = s.icon;
+                        return (
+                          <Link
+                            key={s.href}
+                            id={`profile-item-${s.href}`}
+                            href={s.href}
+                            onClick={(e) => {
+                              if (isLocked) { e.preventDefault(); return; }
+                              try { sessionStorage.setItem("profile-scroll-target", s.href); } catch {}
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i < sec.items.length - 1 ? "border-b border-border-light" : ""}`}
+                            tabIndex={isLocked ? -1 : undefined}
                           >
-                            <Icon size={17} style={{ color: palette.color }} strokeWidth={2.2} />
+                            <div
+                              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: palette.soft }}
+                            >
+                              <Icon size={17} style={{ color: palette.color }} strokeWidth={2.2} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[14px] font-bold text-foreground">{s.t}</p>
+                              <p className="text-[12px] text-muted mt-0.5 truncate">{s.s}</p>
+                            </div>
+                            <ChevronRight size={15} className="text-border flex-shrink-0" />
+                          </Link>
+                        );
+                      })}
+                    </div>
+
+                    {/* Overlay lock — "Arrive prochainement" */}
+                    {isLocked && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="pointer-events-auto flex flex-col items-center gap-2 px-5 py-4 rounded-2xl bg-white"
+                          style={{
+                            boxShadow: "0 16px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(91,79,233,0.12)",
+                            border: "1px solid color-mix(in srgb, var(--color-primary) 15%, white)",
+                          }}
+                        >
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+                            style={{ background: "linear-gradient(135deg, #EEF0FF, #F5F3FF)" }}
+                          >
+                            <Lock size={18} style={{ color: "var(--color-primary)" }} strokeWidth={2.2} />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-bold text-foreground">{s.t}</p>
-                            <p className="text-[12px] text-muted mt-0.5 truncate">{s.s}</p>
-                          </div>
-                          <ChevronRight size={15} className="text-border flex-shrink-0" />
-                        </Link>
-                      );
-                    })}
+                          <p className="text-[9px] font-bold uppercase tracking-[0.14em]" style={{ color: "var(--color-primary)" }}>
+                            Arrive prochainement
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

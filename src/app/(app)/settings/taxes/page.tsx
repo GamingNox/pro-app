@@ -1,6 +1,5 @@
 "use client";
 
-import ComingSoonGate from "@/components/ComingSoonGate";
 import { useState } from "react";
 import { useApp } from "@/lib/store";
 import { motion } from "framer-motion";
@@ -20,7 +19,6 @@ export default function SettingsTaxesPage() {
   function flash() { setSaved(true); setTimeout(() => setSaved(false), 1500); }
 
   return (
-    <ComingSoonGate title="Taxes & TVA" subtitle="La gestion fiscale arrive très prochainement.">
     <SettingsPage
       category="Pilotage fiscal"
       title="Gestion des Taxes & TVA"
@@ -106,6 +104,5 @@ export default function SettingsTaxesPage() {
 
       <SaveButton onClick={flash} saving={saved} />
     </SettingsPage>
-    </ComingSoonGate>
   );
 }

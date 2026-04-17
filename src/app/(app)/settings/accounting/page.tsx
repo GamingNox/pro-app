@@ -1,6 +1,5 @@
 "use client";
 
-import ComingSoonGate from "@/components/ComingSoonGate";
 import { useState } from "react";
 import { useApp } from "@/lib/store";
 import { motion } from "framer-motion";
@@ -37,7 +36,6 @@ export default function SettingsAccountingPage() {
   }
 
   return (
-    <ComingSoonGate title="Exports comptables" subtitle="Les rapports comptables arrivent très prochainement.">
     <SettingsPage category="Export de rapports" title="Centre de Gestion Comptable."
       description="Exportez vos données financières. Sélectionnez un format et téléchargez vos rapports.">
 
@@ -105,6 +103,5 @@ export default function SettingsAccountingPage() {
         </div>
       </div>
     </SettingsPage>
-    </ComingSoonGate>
   );
 }

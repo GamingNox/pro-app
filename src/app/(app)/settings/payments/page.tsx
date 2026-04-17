@@ -1,6 +1,5 @@
 "use client";
 
-import ComingSoonGate from "@/components/ComingSoonGate";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -91,10 +90,6 @@ export default function SettingsPaymentsPage() {
   const progress = Math.round((steps.filter((s) => s.done).length / steps.length) * 100);
 
   return (
-    <ComingSoonGate
-      title="Paiements & encaissement"
-      subtitle="Le système d'encaissement en ligne arrive très prochainement."
-    >
     <SettingsPage
       category="Gestion administrative"
       title="Paiements & Facturation"
@@ -478,6 +473,5 @@ export default function SettingsPaymentsPage() {
 
       <PrimaryButton onClick={saveLink}>{saved ? "Enregistre !" : "Enregistrer tout"}</PrimaryButton>
     </SettingsPage>
-    </ComingSoonGate>
   );
 }
