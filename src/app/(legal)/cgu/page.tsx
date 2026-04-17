@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { LEGAL_INFO } from "@/lib/legal-info";
 
 export default function CGUPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-6 py-10">
-        <Link href="/" className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted mb-8 hover:text-foreground">
-          <ArrowLeft size={16} /> Retour
-        </Link>
+    <div className="max-w-2xl mx-auto px-6 py-10 pb-20">
+      <Link href="/" className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted mb-8 hover:text-foreground">
+        <ArrowLeft size={16} /> Retour
+      </Link>
 
-        <h1 className="text-[28px] font-bold text-foreground tracking-tight mb-2">Conditions generales d&apos;utilisation</h1>
-        <p className="text-[13px] text-muted mb-8">Derniere mise a jour : 16 avril 2026.</p>
+      <h1 className="text-[28px] font-bold text-foreground tracking-tight mb-2">Conditions générales d&apos;utilisation</h1>
+      <p className="text-[13px] text-muted mb-8">
+        Dernière mise à jour : {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
+      </p>
 
         <div className="prose-legal space-y-8 text-[13px] text-foreground leading-relaxed">
 
@@ -20,11 +22,11 @@ export default function CGUPage() {
           <section>
             <h2 className="text-[16px] font-bold text-foreground mb-3">1. Objet</h2>
             <p>
-              Les presentes CGU regissent l&apos;utilisation de la plateforme <strong>clientbase.fr</strong>{" "}
-              (ci-apres &laquo; le Service &raquo;), accessible via navigateur web et en tant qu&apos;application
-              web progressive (PWA). Le Service permet aux professionnels (&laquo; Utilisateurs Pro &raquo;)
-              de gerer leur activite (rendez-vous, clients, factures) et aux consommateurs
-              (&laquo; Clients &raquo;) de reserver des prestations.
+              Les présentes CGU régissent l&apos;utilisation de la plateforme <strong>{LEGAL_INFO.domain}</strong>{" "}
+              (ci-après «&nbsp;le Service&nbsp;»), accessible via navigateur web et en tant qu&apos;application
+              web progressive (PWA). Le Service permet aux professionnels («&nbsp;Utilisateurs Pro&nbsp;»)
+              de gérer leur activité (rendez-vous, clients, factures) et aux consommateurs
+              («&nbsp;Clients&nbsp;») de réserver des prestations.
             </p>
           </section>
 
@@ -157,8 +159,8 @@ export default function CGUPage() {
               (atteinte a la securite, activite frauduleuse).
             </p>
             <p className="mt-3 text-muted">
-              L&apos;utilisateur peut supprimer son compte a tout moment depuis les parametres de
-              l&apos;application ou par email a contact@clientbase.fr.
+              L&apos;utilisateur peut supprimer son compte à tout moment depuis les paramètres de
+              l&apos;application ou par email à <a href={`mailto:${LEGAL_INFO.contactEmail}`} className="text-accent underline">{LEGAL_INFO.contactEmail}</a>.
             </p>
             <p className="mt-3 text-muted">
               En cas de resiliation, les donnees sont traitees conformement a la{" "}
@@ -200,15 +202,13 @@ export default function CGUPage() {
             </p>
           </section>
 
-          {/* Links */}
-          <section>
-            <h2 className="text-[16px] font-bold text-foreground mb-3">Liens utiles</h2>
-            <ul className="space-y-1.5">
-              <li><Link href="/mentions-legales" className="text-accent underline">Mentions legales</Link></li>
-              <li><Link href="/confidentialite" className="text-accent underline">Politique de confidentialite</Link></li>
-            </ul>
-          </section>
-        </div>
+        <section>
+          <h2 className="text-[16px] font-bold text-foreground mb-3">Liens utiles</h2>
+          <ul className="space-y-1.5">
+            <li><Link href="/mentions-legales" className="text-accent underline">Mentions légales</Link></li>
+            <li><Link href="/confidentialite" className="text-accent underline">Politique de confidentialité</Link></li>
+          </ul>
+        </section>
       </div>
     </div>
   );

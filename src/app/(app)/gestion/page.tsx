@@ -75,6 +75,7 @@ export default function GestionPage() {
   const [showNewPayment, setShowNewPayment] = useState(false);
   const [showGoalConfig, setShowGoalConfig] = useState(false);
   const [goalInput, setGoalInput] = useState("1500");
+  const [showMoreTools, setShowMoreTools] = useState(false);
   const [invForm, setInvForm] = useState({ clientId: "", description: "", status: "pending" as "paid" | "pending" });
   const [lineItems, setLineItems] = useState<InvoiceItem[]>([{ label: "", quantity: 1, unitPrice: 0 }]);
   const [expForm, setExpForm] = useState({ description: "", amount: "", category: "Fournitures" });
@@ -662,10 +663,10 @@ export default function GestionPage() {
                 </Link>
               </div>
 
-              {/* ══ OUTILS — 8 tiles in 2 rows ══ */}
+              {/* ══ OUTILS — 4 essentials visible, 8 more behind toggle ══ */}
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted mb-2.5 px-1">Outils</p>
-              <div className="grid grid-cols-4 gap-2.5 mb-5">
-                {/* Row 1 — core management */}
+              <div className="grid grid-cols-4 gap-2.5 mb-3">
+                {/* Row 1 — core management (always visible) */}
                 <motion.button whileTap={{ scale: 0.94 }} onClick={() => setTab("invoices")}
                   className="bg-white rounded-2xl py-4 px-2 shadow-card-interactive flex flex-col items-center gap-2">
                   <div className="w-11 h-11 rounded-xl flex items-center justify-center"
@@ -721,6 +722,24 @@ export default function GestionPage() {
                   </motion.div>
                 </Link>
 
+              </div>
+
+              {/* Toggle for secondary tools */}
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowMoreTools((v) => !v)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 mb-3 text-[11px] font-bold text-muted hover:text-foreground"
+              >
+                {showMoreTools ? "Masquer" : "Plus d'outils"}
+                <ChevronRight
+                  size={12}
+                  strokeWidth={2.4}
+                  style={{ transform: showMoreTools ? "rotate(-90deg)" : "rotate(90deg)", transition: "transform 0.2s" }}
+                />
+              </motion.button>
+
+              {showMoreTools && (
+                <div className="grid grid-cols-4 gap-2.5 mb-5">
                 {/* Row 2 — extended management (clients / fidélité / promos / rapports) */}
                 <Link href="/clients">
                   <motion.div whileTap={{ scale: 0.94 }}
@@ -808,7 +827,8 @@ export default function GestionPage() {
                     <p className="text-[9px] font-bold uppercase tracking-[0.06em] text-muted">Page publique</p>
                   </motion.div>
                 </Link>
-              </div>
+                </div>
+              )}
 
               {/* ══ Quick create strip — secondary ══ */}
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted mb-2.5 px-1">Créer rapidement</p>

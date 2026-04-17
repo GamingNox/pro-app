@@ -8,7 +8,7 @@ import Modal from "@/components/Modal";
 import Link from "next/link";
 import SupportChat from "@/components/SupportChat";
 import {
-  User, Save, ChevronRight, LogOut, Camera, Shield, Sparkles, Gift,
+  User, Save, ChevronRight, ChevronDown, LogOut, Camera, Shield, Sparkles, Gift,
   Briefcase, CalendarDays, CreditCard, Users, Globe, Send,
   SlidersHorizontal, Bell, HelpCircle, BookOpen, Rocket, BarChart3, Package,
   Receipt, FileText, Link2, Star, Percent, QrCode, MessageSquare,
@@ -62,6 +62,7 @@ export default function ProfilePage() {
   const [showLegal, setShowLegal] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [form, setForm] = useState({ name: user.name, business: user.business, phone: user.phone, email: user.email });
   const [photo, setPhoto] = useState<string | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -120,78 +121,78 @@ export default function ProfilePage() {
     e.target.value = "";
   }
 
-  // ── 7 categories aligned with the product spec ─────────
+  // ── Simplified sections: plain French, no jargon ─────────
   const sections: Section[] = [
     {
       key: "profil",
-      label: "Profil",
-      helper: "Votre identité pro : nom, activité, coordonnées, services.",
+      label: "Mon entreprise",
+      helper: "Vos coordonnées et vos services.",
       items: [
-        { icon: Briefcase, t: "Informations entreprise", s: "Nom, description, contacts, réseaux", href: "/settings/info" },
-        { icon: Sparkles,  t: "Mes services",            s: "Prestations, durées, prix, visibilité", href: "/settings/services" },
-        { icon: SlidersHorizontal, t: "Préférences",     s: "Langue, affichage, données", href: "/settings/preferences" },
+        { icon: Briefcase, t: "Mes informations",   s: "Nom de l'entreprise, contacts, réseaux", href: "/settings/info" },
+        { icon: Sparkles,  t: "Mes services",       s: "Prestations, durées, prix", href: "/settings/services" },
+        { icon: SlidersHorizontal, t: "Préférences", s: "Apparence, langue, données", href: "/settings/preferences" },
       ],
     },
     {
       key: "booking",
-      label: "Réservation",
-      helper: "Tout ce qui concerne la prise de rendez-vous par vos clients.",
+      label: "Rendez-vous",
+      helper: "Comment vos clients prennent rendez-vous.",
       items: [
-        { icon: CalendarDays, t: "Disponibilités & horaires", s: "Créneaux, pauses, exceptions", href: "/settings/availability" },
-        { icon: Shield,       t: "Règles de réservation",      s: "Annulation, délais, instructions", href: "/settings/booking-rules" },
-        { icon: Link2,        t: "Lien de réservation",         s: "URL à partager avec vos clients", href: "/settings/booking-link" },
+        { icon: CalendarDays, t: "Mes horaires",        s: "Jours travaillés, pauses, fermetures", href: "/settings/availability" },
+        { icon: Shield,       t: "Règles",              s: "Annulation, délai minimum", href: "/settings/booking-rules" },
+        { icon: Link2,        t: "Lien de réservation", s: "L'adresse à partager avec vos clients", href: "/settings/booking-link" },
       ],
     },
     {
       key: "paiement",
-      label: "Paiement",
-      helper: "Encaissement, facturation et comptabilité.",
+      label: "Facturation & paiements",
+      helper: "Factures, encaissement et comptabilité.",
       items: [
-        { icon: CreditCard, t: "Paiements",              s: "Stripe, PayPal, SumUp, modes acceptés", href: "/settings/payments" },
-        { icon: FileText,   t: "Taxes & TVA",            s: "Régime TVA, déclarations", href: "/settings/taxes" },
-        { icon: Receipt,    t: "Comptabilité & exports", s: "Rapports pour votre comptable", href: "/settings/accounting" },
-        { icon: Receipt,    t: "Paramètres factures",    s: "SIRET, TVA, mentions légales PDF", href: "/settings/invoice" },
+        { icon: CreditCard, t: "Encaissement",        s: "Modes de paiement acceptés", href: "/settings/payments" },
+        { icon: Receipt,    t: "Mes factures",        s: "Numérotation, mentions légales, TVA", href: "/settings/invoice" },
+        { icon: FileText,   t: "Taxes",               s: "Régime de TVA et déclarations", href: "/settings/taxes" },
+        { icon: Receipt,    t: "Exports comptables",  s: "Rapports pour votre comptable", href: "/settings/accounting" },
       ],
     },
     {
       key: "clients",
-      label: "Clients",
-      helper: "Répertoire, segmentation et programme fidélité.",
+      label: "Mes clients",
+      helper: "Votre carnet d'adresses et la fidélité.",
       items: [
-        { icon: Users, t: "Gestion des clients", s: "Liste, badges, notes, historique", href: "/clients" },
-        { icon: Gift,  t: "Programme fidélité",  s: "Cartes et récompenses", href: "/loyalty-manage" },
+        { icon: Users, t: "Répertoire clients", s: "Liste, notes, historique", href: "/clients" },
+        { icon: Gift,  t: "Carte de fidélité",  s: "Récompenses pour vos habitués", href: "/loyalty-manage" },
       ],
     },
     {
       key: "visibilite",
-      label: "Visibilité",
-      helper: "Votre page publique, vos avis et vos supports marketing.",
+      label: "Page publique",
+      helper: "Ce que vos clients voient en ligne.",
       items: [
-        { icon: Globe,  t: "Profil public & SEO",      s: "Tagline, bio, référencement", href: "/settings/visibility" },
-        { icon: Star,   t: "Modération des avis",       s: "Valider, masquer, supprimer", href: "/settings/reviews" },
-        { icon: QrCode, t: "QR code & cartes de visite", s: "Générer et imprimer", href: "/settings/qr-code" },
+        { icon: Globe,  t: "Ma vitrine en ligne", s: "Présentation, bio, référencement", href: "/settings/visibility" },
+        { icon: Star,   t: "Avis clients",         s: "Valider ou masquer les avis", href: "/settings/reviews" },
+        { icon: QrCode, t: "QR code",              s: "Un code à imprimer pour votre comptoir", href: "/settings/qr-code" },
       ],
     },
     {
       key: "messages",
-      label: "Messages",
-      helper: "Emails automatiques, promotions et notifications.",
+      label: "Messages & notifications",
+      helper: "Emails automatiques envoyés à vos clients.",
       items: [
-        { icon: Send,      t: "Messages automatisés", s: "Confirmation, rappel, remerciement", href: "/settings/messages" },
-        { icon: Percent,   t: "Promotions",           s: "Offres flash et campagnes", href: "/settings/promotions" },
-        { icon: Bell,      t: "Notifications",        s: "Alertes app et email", href: "/settings/notifications" },
+        { icon: Send,      t: "Messages automatiques", s: "Confirmation, rappel, remerciement", href: "/settings/messages" },
+        { icon: Percent,   t: "Promotions",            s: "Offres spéciales à envoyer", href: "/settings/promotions" },
+        { icon: Bell,      t: "Alertes",               s: "Notifications reçues sur votre téléphone", href: "/settings/notifications" },
       ],
     },
     {
       key: "outils",
-      label: "Outils",
-      helper: "Tableau de bord, stock et ressources.",
+      label: "Plus",
+      helper: "Statistiques, aide et outils avancés.",
       items: [
-        { icon: BarChart3, t: "Statistiques",  s: "Revenus, clients, performance", href: "/settings/analytics" },
-        { icon: Package,   t: "Stock",         s: "Inventaire et alertes", href: "/settings/stock" },
-        { icon: Rocket,    t: "Mises à jour",  s: "Nouveautés et changelog", href: "/settings/updates" },
-        { icon: BookOpen,  t: "Guide",         s: "Découvrir l'app en 2 minutes", href: "/guide" },
-        { icon: HelpCircle,t: "Centre d'aide", s: "FAQ et contact support", href: "/settings/help" },
+        { icon: BarChart3, t: "Statistiques",  s: "Revenus, nombre de rendez-vous", href: "/settings/analytics" },
+        { icon: Package,   t: "Stock",         s: "Produits en stock et alertes", href: "/settings/stock" },
+        { icon: HelpCircle,t: "Besoin d'aide ?", s: "FAQ et nous contacter", href: "/settings/help" },
+        { icon: BookOpen,  t: "Découvrir l'app",   s: "Visite guidée en 2 minutes", href: "/guide" },
+        { icon: Rocket,    t: "Nouveautés",    s: "Ce qui a changé récemment", href: "/settings/updates" },
       ],
     },
   ];
@@ -359,47 +360,71 @@ export default function ProfilePage() {
             </motion.div>
           </Link>
 
-          {/* ═══ 7 categories ═══ */}
+          {/* ═══ Categories — "Plus" collapsed by default to reduce clutter ═══ */}
           {sections.map((sec) => {
             const palette = CAT_COLORS[sec.key];
+            const isCollapsible = sec.key === "outils";
+            const isExpanded = !isCollapsible || showMore;
             return (
               <div key={sec.key} className="mb-6">
-                {/* Category header */}
-                <div className="flex items-center gap-2 mb-1 px-1">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: palette.color }} />
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: palette.color }}>
-                    {sec.label}
-                  </p>
-                </div>
-                <p className="text-[11px] text-muted px-1 mb-2.5 leading-relaxed">{sec.helper}</p>
+                {isCollapsible ? (
+                  <motion.button
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => setShowMore((v) => !v)}
+                    className="w-full flex items-center justify-between gap-2 mb-2 px-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: palette.color }} />
+                      <p className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: palette.color }}>
+                        {sec.label}
+                      </p>
+                    </div>
+                    <ChevronDown
+                      size={14}
+                      className="text-muted transition-transform"
+                      style={{ transform: showMore ? "rotate(180deg)" : "rotate(0deg)" }}
+                    />
+                  </motion.button>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-1 px-1">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: palette.color }} />
+                      <p className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: palette.color }}>
+                        {sec.label}
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-muted px-1 mb-2.5 leading-relaxed">{sec.helper}</p>
+                  </>
+                )}
 
-                {/* Items list */}
-                <div className="bg-white rounded-2xl shadow-card-premium overflow-hidden">
-                  {sec.items.map((s, i) => {
-                    const Icon = s.icon;
-                    return (
-                      <Link
-                        key={s.href}
-                        id={`profile-item-${s.href}`}
-                        href={s.href}
-                        onClick={() => { try { sessionStorage.setItem("profile-scroll-target", s.href); } catch {} }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i < sec.items.length - 1 ? "border-b border-border-light" : ""}`}
-                      >
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: palette.soft }}
+                {isExpanded && (
+                  <div className="bg-white rounded-2xl shadow-card-premium overflow-hidden">
+                    {sec.items.map((s, i) => {
+                      const Icon = s.icon;
+                      return (
+                        <Link
+                          key={s.href}
+                          id={`profile-item-${s.href}`}
+                          href={s.href}
+                          onClick={() => { try { sessionStorage.setItem("profile-scroll-target", s.href); } catch {} }}
+                          className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i < sec.items.length - 1 ? "border-b border-border-light" : ""}`}
                         >
-                          <Icon size={17} style={{ color: palette.color }} strokeWidth={2.2} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-bold text-foreground">{s.t}</p>
-                          <p className="text-[11px] text-muted mt-0.5 truncate">{s.s}</p>
-                        </div>
-                        <ChevronRight size={15} className="text-border flex-shrink-0" />
-                      </Link>
-                    );
-                  })}
-                </div>
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: palette.soft }}
+                          >
+                            <Icon size={17} style={{ color: palette.color }} strokeWidth={2.2} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] font-bold text-foreground">{s.t}</p>
+                            <p className="text-[11px] text-muted mt-0.5 truncate">{s.s}</p>
+                          </div>
+                          <ChevronRight size={15} className="text-border flex-shrink-0" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
