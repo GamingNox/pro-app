@@ -13,6 +13,7 @@ import MilestoneTracker from "@/components/MilestoneTracker";
 import WeeklyRecap from "@/components/WeeklyRecap";
 import SaveToast from "@/components/SaveToast";
 import UndoToast from "@/components/UndoToast";
+import NotifPrompt from "@/components/NotifPrompt";
 
 const TAB_ORDER = ["/appointments", "/clients", "/", "/gestion", "/profile"];
 
@@ -77,6 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <WeeklyRecap />
       <SaveToast />
       <UndoToast />
+      <NotifPrompt />
       {isTabRoute ? (
         <motion.main
           onPanEnd={handlePanEnd}

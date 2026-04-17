@@ -158,7 +158,7 @@ export default function SmartInsights() {
         icon: Zap,
         text: `Vous avez ${clients.length} client${clients.length > 1 ? "s" : ""}. Partagez votre lien de réservation pour en attirer de nouveaux — les 10 premiers sont les plus importants.`,
         action: "Copier mon lien",
-        href: "/settings/visibility",
+        href: "/settings/booking-link",
         priority: 4,
         color: "#5B4FE9",
         soft: "#EEF0FF",

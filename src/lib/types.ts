@@ -107,7 +107,7 @@ export type Feature =
 
 export const PLAN_LIMITS: Record<PlanTier, { maxClients: number; maxAppointments: number }> = {
   essentiel: { maxClients: 15, maxAppointments: 30 },
-  croissance: { maxClients: Infinity, maxAppointments: Infinity },
+  croissance: { maxClients: 150, maxAppointments: 200 },
   entreprise: { maxClients: Infinity, maxAppointments: Infinity },
 };
 

@@ -106,8 +106,6 @@ export const ROUTE_CATEGORY: Record<string, CategoryKey> = {
   "/settings/services": "business",
   "/settings/stock": "business",
   "/settings/info": "business",
-  "/settings/visibility": "business",
-  "/settings/reviews": "business",
   "/settings/qr-code": "business",
 
   "/gestion": "finance",

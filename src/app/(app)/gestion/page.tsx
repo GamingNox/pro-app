@@ -886,16 +886,6 @@ export default function GestionPage() {
                   </motion.div>
                 </Link>
 
-                <Link href="/settings/visibility">
-                  <motion.div whileTap={{ scale: 0.94 }}
-                    className="bg-white rounded-2xl py-4 px-2 shadow-card-interactive flex flex-col items-center gap-2">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center"
-                      style={tileStyle(CATEGORIES.business.color)}>
-                      <Globe size={18} strokeWidth={2.4} style={{ color: CATEGORIES.business.color }} />
-                    </div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.06em] text-muted">Page publique</p>
-                  </motion.div>
-                </Link>
                 </div>
               )}
 

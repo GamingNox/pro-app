@@ -32,6 +32,31 @@ export default function SettingsQRCodePage() {
   const publicUrl = `https://clientbase.fr/p/${slug}`;
   const business = user.business || user.name || "Votre profil";
 
+  // Editable card text (persisted locally — no DB round-trip needed for a
+  // "just text on my printable") so users can tune their cards without
+  // going to another page.
+  const [titleText, setTitleText] = useState(business);
+  const [taglineText, setTaglineText] = useState("RÉSERVATION EN LIGNE");
+  const [ctaText, setCtaText] = useState("Scannez pour réserver");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("qr_card_text");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.title) setTitleText(parsed.title);
+        if (parsed.tagline) setTaglineText(parsed.tagline);
+        if (parsed.cta) setCtaText(parsed.cta);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("qr_card_text", JSON.stringify({ title: titleText, tagline: taglineText, cta: ctaText }));
+    } catch { /* ignore */ }
+  }, [titleText, taglineText, ctaText]);
+
   // Regenerate QR every time preset changes
   useEffect(() => {
     let cancelled = false;
@@ -110,18 +135,17 @@ export default function SettingsQRCodePage() {
         doc.setFillColor(91, 79, 233);
         doc.rect(x + 2, y, 2, cardH, "F");
 
-        // Business name
+        // Business name / custom title
         doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
         doc.setTextColor(24, 24, 27);
-        const nameText = business.slice(0, 28);
-        doc.text(nameText, x + 8, y + 12);
+        doc.text(titleText.slice(0, 28), x + 8, y + 12);
 
-        // Tagline: category label
+        // Custom tagline
         doc.setFont("helvetica", "normal");
         doc.setFontSize(7);
         doc.setTextColor(113, 113, 122);
-        doc.text("RÉSERVATION EN LIGNE", x + 8, y + 17);
+        doc.text(taglineText.slice(0, 32).toUpperCase(), x + 8, y + 17);
 
         // URL
         doc.setFont("helvetica", "bold");
@@ -134,7 +158,7 @@ export default function SettingsQRCodePage() {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(6.5);
         doc.setTextColor(113, 113, 122);
-        doc.text("Scannez pour réserver", x + 8, y + cardH - 7);
+        doc.text(ctaText.slice(0, 40), x + 8, y + cardH - 7);
 
         // QR code on the right
         const qrSize = 34;
@@ -203,12 +227,12 @@ export default function SettingsQRCodePage() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.setTextColor(255, 255, 255);
-      doc.text("RÉSERVEZ EN LIGNE", w / 2, 15, { align: "center" });
+      doc.text(taglineText.slice(0, 30).toUpperCase(), w / 2, 15, { align: "center" });
 
-      // Business
+      // Business / custom title
       doc.setTextColor(24, 24, 27);
       doc.setFontSize(18);
-      doc.text(business.slice(0, 26), w / 2, 38, { align: "center" });
+      doc.text(titleText.slice(0, 26), w / 2, 38, { align: "center" });
 
       // QR
       const qrSize = 68;
@@ -225,7 +249,7 @@ export default function SettingsQRCodePage() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(113, 113, 122);
-      doc.text("Prenez rendez-vous en 30 secondes", w / 2, qrY + qrSize + 16, { align: "center" });
+      doc.text(ctaText.slice(0, 40), w / 2, qrY + qrSize + 16, { align: "center" });
 
       // URL at bottom
       doc.setFont("helvetica", "bold");
@@ -297,6 +321,48 @@ export default function SettingsQRCodePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Text customization ──────────────────────── */}
+      <SettingsSection
+        title="Texte de votre carte"
+        description="Personnalisez ce qui apparaît sur votre carte et votre affichette."
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Titre principal</label>
+            <input
+              value={titleText}
+              onChange={(e) => setTitleText(e.target.value)}
+              placeholder="Nom de votre établissement"
+              maxLength={28}
+              className="input-field"
+            />
+            <p className="text-[11px] text-muted mt-1">{titleText.length}/28 caractères</p>
+          </div>
+          <div>
+            <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Sous-titre</label>
+            <input
+              value={taglineText}
+              onChange={(e) => setTaglineText(e.target.value)}
+              placeholder="Ex : RÉSERVATION EN LIGNE"
+              maxLength={30}
+              className="input-field"
+            />
+            <p className="text-[11px] text-muted mt-1">{taglineText.length}/30 caractères</p>
+          </div>
+          <div>
+            <label className="text-[11px] text-muted font-bold uppercase tracking-wider mb-1.5 block">Message en bas</label>
+            <input
+              value={ctaText}
+              onChange={(e) => setCtaText(e.target.value)}
+              placeholder="Ex : Scannez pour réserver"
+              maxLength={40}
+              className="input-field"
+            />
+            <p className="text-[11px] text-muted mt-1">{ctaText.length}/40 caractères</p>
+          </div>
+        </div>
+      </SettingsSection>
 
       {/* ── Color customization ─────────────────────── */}
       <SettingsSection title="Couleur" description="Choisissez un style assorti à votre marque.">

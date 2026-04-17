@@ -1,5 +1,6 @@
 "use client";
 
+import ComingSoonGate from "@/components/ComingSoonGate";
 import { useApp } from "@/lib/store";
 import { motion } from "framer-motion";
 import { Building2, Hash, Receipt, CreditCard, FileText, Info } from "lucide-react";
@@ -38,6 +39,7 @@ export default function SettingsInvoicePage() {
   }
 
   return (
+    <ComingSoonGate title="Mes factures" subtitle="La gestion complète des factures arrive très prochainement.">
     <SettingsPage
       category="Comptabilité"
       title="Paramètres de facturation"
@@ -300,5 +302,6 @@ export default function SettingsInvoicePage() {
 
       <SaveButton onClick={() => setConfig({ ...config })} saving={saved} />
     </SettingsPage>
+    </ComingSoonGate>
   );
 }

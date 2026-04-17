@@ -120,35 +120,34 @@ export default function ProfilePage() {
     e.target.value = "";
   }
 
-  // ── 8 simplified sections — plain French, no jargon ──
+  // ── Sections — essentiels en haut, le reste en dessous ──
   const sections: Section[] = [
     {
-      key: "etablissement",
-      label: "Mon établissement",
-      helper: "Votre identité professionnelle publique.",
-      items: [
-        { icon: Briefcase, t: "Mes informations", s: "Nom, description, contacts, réseaux", href: "/settings/info" },
-        { icon: Globe,     t: "Ma vitrine en ligne", s: "Présentation et référencement", href: "/settings/visibility" },
-        { icon: QrCode,    t: "QR code", s: "Code à imprimer pour votre comptoir", href: "/settings/qr-code" },
-      ],
-    },
-    {
       key: "reservations",
-      label: "Réservations",
-      helper: "Comment vos clients prennent rendez-vous.",
+      label: "Mes rendez-vous",
+      helper: "L'essentiel pour recevoir des réservations.",
       items: [
+        { icon: Link2,        t: "Lien de réservation", s: "L'adresse à partager avec vos clients", href: "/settings/booking-link" },
         { icon: CalendarDays, t: "Mes horaires", s: "Jours travaillés, pauses, fermetures", href: "/settings/availability" },
         { icon: Shield,       t: "Règles", s: "Annulation, délai minimum", href: "/settings/booking-rules" },
-        { icon: Link2,        t: "Lien de réservation", s: "L'adresse à partager avec vos clients", href: "/settings/booking-link" },
       ],
     },
     {
       key: "services",
-      label: "Services & stock",
+      label: "Mes services & stock",
       helper: "Ce que vous proposez et vos produits.",
       items: [
         { icon: Sparkles, t: "Mes services", s: "Prestations, durées, prix", href: "/settings/services" },
         { icon: Package,  t: "Stock",        s: "Produits en stock et alertes", href: "/settings/stock" },
+      ],
+    },
+    {
+      key: "etablissement",
+      label: "Mon établissement",
+      helper: "Votre identité et votre QR code.",
+      items: [
+        { icon: Briefcase, t: "Mes informations", s: "Nom, adresse, contacts", href: "/settings/info" },
+        { icon: QrCode,    t: "Carte de visite QR", s: "Code à imprimer pour votre comptoir", href: "/settings/qr-code" },
       ],
     },
     {
@@ -158,13 +157,12 @@ export default function ProfilePage() {
       items: [
         { icon: Send, t: "Messages automatiques", s: "Confirmation, rappel, remerciement", href: "/settings/messages" },
         { icon: Bell, t: "Mes alertes",           s: "Notifications reçues sur votre téléphone", href: "/settings/notifications" },
-        { icon: Star, t: "Avis clients",          s: "Valider ou masquer les avis", href: "/settings/reviews" },
       ],
     },
     {
       key: "paiements",
       label: "Paiements & facturation",
-      helper: "Encaissement, factures et comptabilité.",
+      helper: "Arrive prochainement.",
       items: [
         { icon: CreditCard, t: "Encaissement",       s: "Modes de paiement acceptés", href: "/settings/payments" },
         { icon: Receipt,    t: "Mes factures",       s: "Numérotation et mentions sur le PDF", href: "/settings/invoice" },
@@ -184,8 +182,8 @@ export default function ProfilePage() {
     },
     {
       key: "rapports",
-      label: "Rapports & impôts",
-      helper: "Tableaux de bord et exports.",
+      label: "Rapports",
+      helper: "Tableaux de bord et statistiques.",
       items: [
         { icon: BarChart3, t: "Statistiques", s: "Revenus, nombre de rendez-vous", href: "/settings/analytics" },
       ],
