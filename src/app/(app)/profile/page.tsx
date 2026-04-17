@@ -16,17 +16,16 @@ import {
 
 type CategoryColor = { color: string; soft: string; deep: string };
 
-// ── Category palette (used for icon backgrounds inside the list) ──
-// Each category has its own pastel, but all interactive elements in the
-// sub-pages stay violet via --color-primary.
+// ── Category palette — 8 groups ──
 const CAT_COLORS: Record<string, CategoryColor> = {
-  profil:    { color: "#0891B2", soft: "#ECFEFF", deep: "#164E63" }, // cyan
-  clients:   { color: "#3B82F6", soft: "#EFF6FF", deep: "#1D4ED8" }, // blue
-  booking:   { color: "#8B5CF6", soft: "#F5F3FF", deep: "#6D28D9" }, // purple
-  paiement:  { color: "#16A34A", soft: "#F0FDF4", deep: "#15803D" }, // green
-  visibilite:{ color: "#EC4899", soft: "#FDF2F8", deep: "#BE185D" }, // rose
-  messages:  { color: "#F59E0B", soft: "#FFFBEB", deep: "#B45309" }, // amber
-  outils:    { color: "#71717A", soft: "#F4F4F5", deep: "#3F3F46" }, // zinc
+  etablissement: { color: "#0891B2", soft: "#ECFEFF", deep: "#164E63" }, // cyan
+  reservations:  { color: "#8B5CF6", soft: "#F5F3FF", deep: "#6D28D9" }, // purple
+  services:      { color: "#3B82F6", soft: "#EFF6FF", deep: "#1D4ED8" }, // blue
+  messages:      { color: "#F59E0B", soft: "#FFFBEB", deep: "#B45309" }, // amber
+  paiements:     { color: "#16A34A", soft: "#F0FDF4", deep: "#15803D" }, // green
+  promotions:    { color: "#EC4899", soft: "#FDF2F8", deep: "#BE185D" }, // rose
+  rapports:      { color: "#EF4444", soft: "#FEF2F2", deep: "#B91C1C" }, // red
+  compte:        { color: "#71717A", soft: "#F4F4F5", deep: "#3F3F46" }, // zinc
 };
 
 interface SettingItem {
@@ -121,78 +120,85 @@ export default function ProfilePage() {
     e.target.value = "";
   }
 
-  // ── Simplified sections: plain French, no jargon ─────────
+  // ── 8 simplified sections — plain French, no jargon ──
   const sections: Section[] = [
     {
-      key: "profil",
-      label: "Mon entreprise",
-      helper: "Vos coordonnées et vos services.",
+      key: "etablissement",
+      label: "Mon établissement",
+      helper: "Votre identité professionnelle publique.",
       items: [
-        { icon: Briefcase, t: "Mes informations",   s: "Nom de l'entreprise, contacts, réseaux", href: "/settings/info" },
-        { icon: Sparkles,  t: "Mes services",       s: "Prestations, durées, prix", href: "/settings/services" },
-        { icon: SlidersHorizontal, t: "Préférences", s: "Apparence, langue, données", href: "/settings/preferences" },
+        { icon: Briefcase, t: "Mes informations", s: "Nom, description, contacts, réseaux", href: "/settings/info" },
+        { icon: Globe,     t: "Ma vitrine en ligne", s: "Présentation et référencement", href: "/settings/visibility" },
+        { icon: QrCode,    t: "QR code", s: "Code à imprimer pour votre comptoir", href: "/settings/qr-code" },
       ],
     },
     {
-      key: "booking",
-      label: "Rendez-vous",
+      key: "reservations",
+      label: "Réservations",
       helper: "Comment vos clients prennent rendez-vous.",
       items: [
-        { icon: CalendarDays, t: "Mes horaires",        s: "Jours travaillés, pauses, fermetures", href: "/settings/availability" },
-        { icon: Shield,       t: "Règles",              s: "Annulation, délai minimum", href: "/settings/booking-rules" },
+        { icon: CalendarDays, t: "Mes horaires", s: "Jours travaillés, pauses, fermetures", href: "/settings/availability" },
+        { icon: Shield,       t: "Règles", s: "Annulation, délai minimum", href: "/settings/booking-rules" },
         { icon: Link2,        t: "Lien de réservation", s: "L'adresse à partager avec vos clients", href: "/settings/booking-link" },
       ],
     },
     {
-      key: "paiement",
-      label: "Facturation & paiements",
-      helper: "Factures, encaissement et comptabilité.",
+      key: "services",
+      label: "Services & stock",
+      helper: "Ce que vous proposez et vos produits.",
       items: [
-        { icon: CreditCard, t: "Encaissement",        s: "Modes de paiement acceptés", href: "/settings/payments" },
-        { icon: Receipt,    t: "Mes factures",        s: "Numérotation, mentions légales, TVA", href: "/settings/invoice" },
-        { icon: FileText,   t: "Taxes",               s: "Régime de TVA et déclarations", href: "/settings/taxes" },
-        { icon: Receipt,    t: "Exports comptables",  s: "Rapports pour votre comptable", href: "/settings/accounting" },
-      ],
-    },
-    {
-      key: "clients",
-      label: "Mes clients",
-      helper: "Votre carnet d'adresses et la fidélité.",
-      items: [
-        { icon: Users, t: "Répertoire clients", s: "Liste, notes, historique", href: "/clients" },
-        { icon: Gift,  t: "Carte de fidélité",  s: "Récompenses pour vos habitués", href: "/loyalty-manage" },
-      ],
-    },
-    {
-      key: "visibilite",
-      label: "Page publique",
-      helper: "Ce que vos clients voient en ligne.",
-      items: [
-        { icon: Globe,  t: "Ma vitrine en ligne", s: "Présentation, bio, référencement", href: "/settings/visibility" },
-        { icon: Star,   t: "Avis clients",         s: "Valider ou masquer les avis", href: "/settings/reviews" },
-        { icon: QrCode, t: "QR code",              s: "Un code à imprimer pour votre comptoir", href: "/settings/qr-code" },
+        { icon: Sparkles, t: "Mes services", s: "Prestations, durées, prix", href: "/settings/services" },
+        { icon: Package,  t: "Stock",        s: "Produits en stock et alertes", href: "/settings/stock" },
       ],
     },
     {
       key: "messages",
       label: "Messages & notifications",
-      helper: "Emails automatiques envoyés à vos clients.",
+      helper: "Ce que reçoivent vos clients (et vous).",
       items: [
-        { icon: Send,      t: "Messages automatiques", s: "Confirmation, rappel, remerciement", href: "/settings/messages" },
-        { icon: Percent,   t: "Promotions",            s: "Offres spéciales à envoyer", href: "/settings/promotions" },
-        { icon: Bell,      t: "Alertes",               s: "Notifications reçues sur votre téléphone", href: "/settings/notifications" },
+        { icon: Send, t: "Messages automatiques", s: "Confirmation, rappel, remerciement", href: "/settings/messages" },
+        { icon: Bell, t: "Mes alertes",           s: "Notifications reçues sur votre téléphone", href: "/settings/notifications" },
+        { icon: Star, t: "Avis clients",          s: "Valider ou masquer les avis", href: "/settings/reviews" },
       ],
     },
     {
-      key: "outils",
-      label: "Plus",
-      helper: "Statistiques, aide et outils avancés.",
+      key: "paiements",
+      label: "Paiements & facturation",
+      helper: "Encaissement, factures et comptabilité.",
       items: [
-        { icon: BarChart3, t: "Statistiques",  s: "Revenus, nombre de rendez-vous", href: "/settings/analytics" },
-        { icon: Package,   t: "Stock",         s: "Produits en stock et alertes", href: "/settings/stock" },
-        { icon: HelpCircle,t: "Besoin d'aide ?", s: "FAQ et nous contacter", href: "/settings/help" },
-        { icon: BookOpen,  t: "Découvrir l'app",   s: "Visite guidée en 2 minutes", href: "/guide" },
-        { icon: Rocket,    t: "Nouveautés",    s: "Ce qui a changé récemment", href: "/settings/updates" },
+        { icon: CreditCard, t: "Encaissement",       s: "Modes de paiement acceptés", href: "/settings/payments" },
+        { icon: Receipt,    t: "Mes factures",       s: "Numérotation et mentions sur le PDF", href: "/settings/invoice" },
+        { icon: FileText,   t: "Taxes",              s: "Régime de TVA et déclarations", href: "/settings/taxes" },
+        { icon: Receipt,    t: "Exports comptables", s: "Rapports pour votre comptable", href: "/settings/accounting" },
+      ],
+    },
+    {
+      key: "promotions",
+      label: "Promotions & parrainage",
+      helper: "Outils marketing pour fidéliser.",
+      items: [
+        { icon: Percent,  t: "Promotions",       s: "Offres spéciales à envoyer", href: "/settings/promotions" },
+        { icon: Gift,     t: "Carte de fidélité", s: "Récompenses pour vos habitués", href: "/loyalty-manage" },
+        { icon: Users,    t: "Parrainage",       s: "Inviter des amis à rejoindre", href: "/settings/referral" },
+      ],
+    },
+    {
+      key: "rapports",
+      label: "Rapports & impôts",
+      helper: "Tableaux de bord et exports.",
+      items: [
+        { icon: BarChart3, t: "Statistiques", s: "Revenus, nombre de rendez-vous", href: "/settings/analytics" },
+      ],
+    },
+    {
+      key: "compte",
+      label: "Mon compte",
+      helper: "Préférences, aide et nouveautés.",
+      items: [
+        { icon: SlidersHorizontal, t: "Préférences", s: "Apparence, langue, données", href: "/settings/preferences" },
+        { icon: HelpCircle,        t: "Besoin d'aide ?", s: "FAQ et nous contacter", href: "/settings/help" },
+        { icon: BookOpen,          t: "Découvrir l'app", s: "Visite guidée en 2 minutes", href: "/guide" },
+        { icon: Rocket,            t: "Nouveautés", s: "Ce qui a changé récemment", href: "/settings/updates" },
       ],
     },
   ];
@@ -363,7 +369,7 @@ export default function ProfilePage() {
           {/* ═══ Categories — "Plus" collapsed by default to reduce clutter ═══ */}
           {sections.map((sec) => {
             const palette = CAT_COLORS[sec.key];
-            const isCollapsible = sec.key === "outils";
+            const isCollapsible = sec.key === "compte" || sec.key === "rapports";
             const isExpanded = !isCollapsible || showMore;
             return (
               <div key={sec.key} className="mb-6">

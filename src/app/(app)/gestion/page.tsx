@@ -9,7 +9,7 @@ import {
   Plus, Clock, CheckCircle2, Receipt, Package, Wallet,
   Trash2, Minus, Search, TrendingDown, TrendingUp, ArrowUpRight,
   Copy, AlertCircle, BarChart3, PiggyBank, ShoppingCart,
-  FileText, AlertTriangle, ChevronRight, Settings, Save, ArrowLeft,
+  FileText, AlertTriangle, ChevronRight, ChevronDown, Settings, Save, ArrowLeft,
   Gift, Tag, Users as UsersIcon, CalendarDays, MessageSquare,
   Download, Send, Link2, QrCode, Globe,
 } from "lucide-react";
@@ -76,8 +76,11 @@ export default function GestionPage() {
   const [showGoalConfig, setShowGoalConfig] = useState(false);
   const [goalInput, setGoalInput] = useState("1500");
   const [showMoreTools, setShowMoreTools] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [invForm, setInvForm] = useState({ clientId: "", description: "", status: "pending" as "paid" | "pending" });
   const [lineItems, setLineItems] = useState<InvoiceItem[]>([{ label: "", quantity: 1, unitPrice: 0 }]);
+  const [invoiceMode, setInvoiceMode] = useState<"quick" | "detailed">("quick");
+  const [quickAmount, setQuickAmount] = useState("");
   const [expForm, setExpForm] = useState({ description: "", amount: "", category: "Fournitures" });
   const [prodForm, setProdForm] = useState({ name: "", quantity: "", minQuantity: "", price: "", category: "", emoji: "📦" });
   const [payForm, setPayForm] = useState({ clientId: "", productId: "", serviceLabel: "", amount: "", useProduct: true });
@@ -232,12 +235,23 @@ export default function GestionPage() {
   const maxMonthly = Math.max(...monthlyData.map((m) => m.revenue), 1);
 
   function handleInvoiceSubmit() {
-    const validItems = lineItems.filter((item) => item.label.trim() && item.unitPrice > 0);
-    if (validItems.length === 0 && !invForm.description.trim()) return;
-    const total = validItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-    const desc = invForm.description.trim() || validItems.map((i) => i.label).join(", ");
-    addInvoice({ clientId: invForm.clientId, amount: total, description: desc, status: invForm.status, date: new Date().toISOString().split("T")[0], items: validItems.length > 0 ? validItems : undefined });
-    setShowNewInvoice(false); setInvForm({ clientId: "", description: "", status: "pending" }); setLineItems([{ label: "", quantity: 1, unitPrice: 0 }]);
+    if (invoiceMode === "quick") {
+      const amount = parseFloat(quickAmount);
+      if (!amount || amount <= 0) return;
+      const desc = invForm.description.trim() || "Prestation";
+      addInvoice({ clientId: invForm.clientId, amount, description: desc, status: invForm.status, date: new Date().toISOString().split("T")[0] });
+    } else {
+      const validItems = lineItems.filter((item) => item.label.trim() && item.unitPrice > 0);
+      if (validItems.length === 0 && !invForm.description.trim()) return;
+      const total = validItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      const desc = invForm.description.trim() || validItems.map((i) => i.label).join(", ");
+      addInvoice({ clientId: invForm.clientId, amount: total, description: desc, status: invForm.status, date: new Date().toISOString().split("T")[0], items: validItems.length > 0 ? validItems : undefined });
+    }
+    setShowNewInvoice(false);
+    setInvForm({ clientId: "", description: "", status: "pending" });
+    setLineItems([{ label: "", quantity: 1, unitPrice: 0 }]);
+    setQuickAmount("");
+    setInvoiceMode("quick");
   }
 
   function handleExpenseSubmit() {
@@ -509,6 +523,77 @@ export default function GestionPage() {
 
             return (
             <motion.div key={`gestion-${tab ?? "overview"}`} initial={tabContentVariants.initial} animate={tabContentVariants.animate} transition={tabContentTransition}>
+
+              {/* ══ ESSENTIEL — always visible, minimal cognitive load ══ */}
+              {/* Today revenue — single big number */}
+              <div className="bg-white rounded-2xl p-5 shadow-card-premium mb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: "var(--color-accent-soft)" }}>
+                    <TrendingUp size={12} className="text-accent" strokeWidth={2.4} />
+                  </div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Revenus du jour</p>
+                </div>
+                <p className="text-[34px] font-bold text-foreground tracking-tight leading-none">
+                  {todayRev.toFixed(0)}<span className="text-[18px] text-muted font-medium"> €</span>
+                </p>
+                <p className="text-[11px] text-muted mt-1.5">
+                  {todayAppts.length} RDV aujourd&apos;hui · {remainingToday} restant{remainingToday > 1 ? "s" : ""}
+                </p>
+              </div>
+
+              {/* Low stock banner — only if there are low items */}
+              {lowStock.length > 0 && (
+                <motion.button
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => setTab("stock")}
+                  className="w-full rounded-2xl p-4 mb-3 flex items-center gap-3 text-left"
+                  style={{ background: "#FFFBEB", border: "1px solid #FEF3C7" }}
+                >
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}>
+                    <Package size={17} className="text-white" strokeWidth={2.4} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-foreground">
+                      {lowStock.length} produit{lowStock.length > 1 ? "s" : ""} en stock bas
+                    </p>
+                    <p className="text-[11px] text-muted mt-0.5 truncate">
+                      {lowStock.slice(0, 2).map((p) => p.name).join(", ")}{lowStock.length > 2 ? "…" : ""}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-muted flex-shrink-0" />
+                </motion.button>
+              )}
+
+              {/* Quick encaisser — the #1 action of the page */}
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowNewPayment(true)}
+                className="w-full text-white rounded-2xl py-4 mb-5 text-[14px] font-bold flex items-center justify-center gap-2"
+                style={{
+                  background: "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-deep) 100%)",
+                  boxShadow: "0 10px 28px color-mix(in srgb, var(--color-accent) 30%, transparent)",
+                }}
+              >
+                <Plus size={16} strokeWidth={2.6} /> Encaisser un paiement
+              </motion.button>
+
+              {/* Avancé toggle — reveals the full dashboard */}
+              <motion.button
+                whileTap={{ scale: 0.99 }}
+                onClick={() => setShowAdvanced((v) => !v)}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 mb-4 text-[12px] font-bold rounded-xl bg-white"
+                style={{ border: "1px solid #E4E4E7", color: "#52525B" }}
+              >
+                {showAdvanced ? "Masquer le mode avancé" : "Afficher le mode avancé"}
+                <ChevronDown
+                  size={14}
+                  strokeWidth={2.4}
+                  style={{ transform: showAdvanced ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+                />
+              </motion.button>
+
+              {showAdvanced && <>
 
               {/* ══ HERO — dynamic contextual message (rotates) ══ */}
               <motion.button
@@ -916,6 +1001,7 @@ export default function GestionPage() {
                 </div>
               )}
 
+              </>}
             </motion.div>
             );
           })()}
@@ -1309,6 +1395,24 @@ export default function GestionPage() {
 
       <Modal open={showNewInvoice} onClose={() => setShowNewInvoice(false)} title="Nouvelle facture">
         <div className="space-y-4">
+          {/* Mode switch: Rapide (single amount) vs Détaillée (line items) */}
+          <div className="bg-border-light rounded-2xl p-1 flex gap-1">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setInvoiceMode("quick")}
+              className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all ${invoiceMode === "quick" ? "bg-white shadow-sm text-foreground" : "text-muted"}`}
+            >
+              Rapide
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setInvoiceMode("detailed")}
+              className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all ${invoiceMode === "detailed" ? "bg-white shadow-sm text-foreground" : "text-muted"}`}
+            >
+              Détaillée
+            </motion.button>
+          </div>
+
           <div>
             <label className="text-[12px] text-muted font-semibold mb-1.5 block">Client</label>
             <select value={invForm.clientId} onChange={(e) => setInvForm({ ...invForm, clientId: e.target.value })} className="input-field">
@@ -1316,39 +1420,67 @@ export default function GestionPage() {
               {clients.map((c) => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}
             </select>
           </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[12px] text-muted font-semibold">Lignes</label>
-              <motion.button whileTap={{ scale: 0.96 }} onClick={() => setLineItems([...lineItems, { label: "", quantity: 1, unitPrice: 0 }])}
-                className="text-[11px] text-accent font-bold flex items-center gap-0.5"><Plus size={12} /> Ligne</motion.button>
-            </div>
-            <div className="space-y-2">
-              {lineItems.map((li, index) => (
-                <div key={index} className="bg-border-light rounded-2xl p-3.5">
-                  <input value={li.label} onChange={(e) => { const u = [...lineItems]; u[index] = { ...u[index], label: e.target.value }; setLineItems(u); }}
-                    placeholder="Ex : Manucure gel" className="w-full bg-white rounded-xl px-3.5 py-2.5 text-[13px] mb-2 focus:outline-none focus:ring-2 focus:ring-accent/10" />
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="text-[9px] text-muted uppercase font-bold mb-0.5 block">Qté</label>
-                      <input type="number" value={li.quantity || ""} onChange={(e) => { const u = [...lineItems]; u[index] = { ...u[index], quantity: parseInt(e.target.value) || 0 }; setLineItems(u); }}
-                        className="w-full bg-white rounded-xl px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/10" min="1" />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-[9px] text-muted uppercase font-bold mb-0.5 block">Prix €</label>
-                      <input type="number" value={li.unitPrice || ""} onChange={(e) => { const u = [...lineItems]; u[index] = { ...u[index], unitPrice: parseFloat(e.target.value) || 0 }; setLineItems(u); }}
-                        placeholder="0" className="w-full bg-white rounded-xl px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/10" />
-                    </div>
-                    <p className="text-[13px] font-bold text-foreground min-w-[45px] text-right pt-4">{(li.quantity * li.unitPrice).toFixed(0)} €</p>
-                    {lineItems.length > 1 && <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLineItems(lineItems.filter((_, i) => i !== index))} className="text-subtle pt-4"><Trash2 size={12} /></motion.button>}
-                  </div>
+
+          {invoiceMode === "quick" ? (
+            <>
+              <div>
+                <label className="text-[12px] text-muted font-semibold mb-1.5 block">Description</label>
+                <input
+                  value={invForm.description}
+                  onChange={(e) => setInvForm({ ...invForm, description: e.target.value })}
+                  placeholder="Ex : Séance de coaching"
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-muted font-semibold mb-1.5 block">Montant (€)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={quickAmount}
+                  onChange={(e) => setQuickAmount(e.target.value)}
+                  placeholder="0"
+                  className="input-field text-[22px] font-bold text-center"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[12px] text-muted font-semibold">Lignes</label>
+                  <motion.button whileTap={{ scale: 0.96 }} onClick={() => setLineItems([...lineItems, { label: "", quantity: 1, unitPrice: 0 }])}
+                    className="text-[11px] text-accent font-bold flex items-center gap-0.5"><Plus size={12} /> Ligne</motion.button>
                 </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-foreground rounded-2xl p-4 flex items-center justify-between">
-            <span className="text-[14px] text-white/70">Total</span>
-            <span className="text-[24px] font-bold text-white">{lineTotal.toFixed(0)} €</span>
-          </div>
+                <div className="space-y-2">
+                  {lineItems.map((li, index) => (
+                    <div key={index} className="bg-border-light rounded-2xl p-3.5">
+                      <input value={li.label} onChange={(e) => { const u = [...lineItems]; u[index] = { ...u[index], label: e.target.value }; setLineItems(u); }}
+                        placeholder="Ex : Manucure gel" className="w-full bg-white rounded-xl px-3.5 py-2.5 text-[13px] mb-2 focus:outline-none focus:ring-2 focus:ring-accent/10" />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <label className="text-[9px] text-muted uppercase font-bold mb-0.5 block">Qté</label>
+                          <input type="number" value={li.quantity || ""} onChange={(e) => { const u = [...lineItems]; u[index] = { ...u[index], quantity: parseInt(e.target.value) || 0 }; setLineItems(u); }}
+                            className="w-full bg-white rounded-xl px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/10" min="1" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[9px] text-muted uppercase font-bold mb-0.5 block">Prix €</label>
+                          <input type="number" value={li.unitPrice || ""} onChange={(e) => { const u = [...lineItems]; u[index] = { ...u[index], unitPrice: parseFloat(e.target.value) || 0 }; setLineItems(u); }}
+                            placeholder="0" className="w-full bg-white rounded-xl px-3.5 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/10" />
+                        </div>
+                        <p className="text-[13px] font-bold text-foreground min-w-[45px] text-right pt-4">{(li.quantity * li.unitPrice).toFixed(0)} €</p>
+                        {lineItems.length > 1 && <motion.button whileTap={{ scale: 0.95 }} onClick={() => setLineItems(lineItems.filter((_, i) => i !== index))} className="text-subtle pt-4"><Trash2 size={12} /></motion.button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-foreground rounded-2xl p-4 flex items-center justify-between">
+                <span className="text-[14px] text-white/70">Total</span>
+                <span className="text-[24px] font-bold text-white">{lineTotal.toFixed(0)} €</span>
+              </div>
+            </>
+          )}
           <div>
             <label className="text-[12px] text-muted font-semibold mb-2 block">Statut</label>
             <div className="flex gap-2.5">
