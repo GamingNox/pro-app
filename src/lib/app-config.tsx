@@ -63,28 +63,16 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     }
 
     load();
-    const poll = setInterval(load, 60_000);
-
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    try {
-      channel = supabase
-        .channel("app-config-singleton")
-        .on(
-          "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "app_config" },
-          () => load()
-        )
-        .subscribe();
-    } catch {
-      // realtime not available — polling alone is enough
-    }
+    // Poll every 30s — simple, reliable, no realtime channel dependency.
+    // Realtime was removed because the shared channel name caused
+    // "cannot add postgres_changes callbacks after subscribe()" in prod,
+    // and also because the app_config table isn't required to be in the
+    // Supabase realtime publication for the admin controls to work.
+    const poll = setInterval(load, 30_000);
 
     return () => {
       cancelled = true;
       clearInterval(poll);
-      if (channel) {
-        try { supabase.removeChannel(channel); } catch { /* ignore */ }
-      }
     };
   }, []);
 

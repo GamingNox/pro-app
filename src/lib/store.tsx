@@ -322,9 +322,12 @@ const PARTICLES = [
 
 function SplashScreen() {
   const [phase, setPhase] = useState<"intro" | "ready" | "exit">("intro");
-  const [message] = useState(() => SPLASH_MESSAGES[Math.floor(Math.random() * SPLASH_MESSAGES.length)]);
+  // First paint uses a stable fallback so SSR and client hydration match.
+  // A random message is picked right after mount (client-only).
+  const [message, setMessage] = useState<string>(SPLASH_MESSAGES[0]);
 
   useEffect(() => {
+    setMessage(SPLASH_MESSAGES[Math.floor(Math.random() * SPLASH_MESSAGES.length)]);
     const t1 = setTimeout(() => setPhase("ready"), 1100);
     const t2 = setTimeout(() => setPhase("exit"), 2700);
     return () => { clearTimeout(t1); clearTimeout(t2); };
