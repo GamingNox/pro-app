@@ -18,6 +18,7 @@ import GlobalBanners from "@/components/GlobalBanners";
 import SiteClosedGate from "@/components/SiteClosedGate";
 import VersionToast from "@/components/VersionToast";
 import FloatingSupportButton from "@/components/FloatingSupportButton";
+import { AppConfigProvider } from "@/lib/app-config";
 
 const TAB_ORDER = ["/appointments", "/clients", "/", "/gestion", "/profile"];
 
@@ -75,6 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isTabRoute = TAB_ORDER.includes(pathname);
 
   return (
+    <AppConfigProvider>
     <SiteClosedGate>
     <div className="h-full h-[100dvh] flex flex-col max-w-lg mx-auto relative bg-background">
       <GlobalBanners />
@@ -102,5 +104,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {user.accountType !== "client" && !pathname.startsWith("/chat") && <FloatingSupportButton />}
     </div>
     </SiteClosedGate>
+    </AppConfigProvider>
   );
 }

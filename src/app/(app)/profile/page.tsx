@@ -419,18 +419,9 @@ export default function ProfilePage() {
                     >
                       {sec.items.map((s, i) => {
                         const Icon = s.icon;
-                        return (
-                          <Link
-                            key={s.href}
-                            id={`profile-item-${s.href}`}
-                            href={s.href}
-                            onClick={(e) => {
-                              if (isLocked) { e.preventDefault(); return; }
-                              try { sessionStorage.setItem("profile-scroll-target", s.href); } catch {}
-                            }}
-                            className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i < sec.items.length - 1 ? "border-b border-border-light" : ""}`}
-                            tabIndex={isLocked ? -1 : undefined}
-                          >
+                        const rowClass = `w-full flex items-center gap-3 px-4 py-3.5 text-left ${i < sec.items.length - 1 ? "border-b border-border-light" : ""}`;
+                        const rowContent = (
+                          <>
                             <div
                               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                               style={{ backgroundColor: palette.soft }}
@@ -442,6 +433,27 @@ export default function ProfilePage() {
                               <p className="text-[12px] text-muted mt-0.5 truncate">{s.s}</p>
                             </div>
                             <ChevronRight size={15} className="text-border flex-shrink-0" />
+                          </>
+                        );
+                        // When locked, render as a non-interactive div (no Link at all).
+                        // Prevents any chance of Next.js routing firing on click, keyboard
+                        // Enter, or prefetch triggering a navigation attempt.
+                        if (isLocked) {
+                          return (
+                            <div key={s.href} className={rowClass}>
+                              {rowContent}
+                            </div>
+                          );
+                        }
+                        return (
+                          <Link
+                            key={s.href}
+                            id={`profile-item-${s.href}`}
+                            href={s.href}
+                            onClick={() => { try { sessionStorage.setItem("profile-scroll-target", s.href); } catch {} }}
+                            className={rowClass}
+                          >
+                            {rowContent}
                           </Link>
                         );
                       })}
